@@ -1,5 +1,5 @@
 # Submission Statement Bot
-This is a Reddit bot for requiring submission statements on link posts. If an OP does not include a statement (comment on their own post) within a certain timeframe, the post is removed.
+This is a Reddit bot for requiring submission statements on link posts. If an OP does not include a statement (comment on their own post) within a certain timeframe, the post is removed. Credit goes to [epicmindwarp](https://github.com/epicmindwarp) for writing this bot. I decided to document the process for getting it up and running on Heroku for free so it can potentially be more available to various moderators.
 
 # Requirements
 - Python 3.7+
