@@ -9,17 +9,17 @@ A Reddit bot for requiring submission statements on link posts. If the OP does n
 This guide assumes you’re using Windows and this bot's code. Although, this guide should work for getting a general Reddit bot running on Heroku as well. The main advantage of Heroku is that their base plan included enough hours to run this bot for free.
 
 # Setup Git
-1. Create a Github account. This is where we’ll be hosting the bot’s code.
+1. [Create a Github account.](https://github.com/join) This is where we’ll be hosting the bot’s code.
 
-2. Go to the bot repo and select ‘fork’ to create a copy of it to on your own github account. 
+2. [Go to the bot repo](https://github.com/CrashAtlas/anomalies) and select ‘fork’ to create a copy of it to on your own github account. 
 
-3.From your new repo, select ‘Clone or download’ and then ‘Download ZIP’ to download a local copy. We’ll come back to this later.
+3. From your new repo, select ‘Clone or download’ and then ‘Download ZIP’ to download a local copy. We’ll come back to this later.
 
 4. Make note of (copy/paste somewhere) your Reddit app’s Client ID. This the string directly under ‘personal use script’. This is your Reddit App Client ID.
 
 5. Make note of (copy/paste somewhere) the URL linking to your repo (e.g. https://github.com/yourusername/collapse). This is your Github Repo URL.
 
-6. Go here and install Git if you don’t have it already.
+6. [Go here and install Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) if you don’t have it already.
 
 
 # Setup Heroku
@@ -39,7 +39,7 @@ This guide assumes you’re using Windows and this bot's code. Although, this gu
 
 
 # Setup Reddit
-1. Create a new Reddit account with the name you’d like for your bot.
+1. [Create a new Reddit account](https://www.reddit.com/register/?dest=https%3A%2F%2Fwww.reddit.com%2F) with the name you’d like for your bot.
 
 2. Login into your primary Reddit account which moderates your subreddit.
 
@@ -78,39 +78,45 @@ This guide assumes you’re using Windows and this bot's code. Although, this gu
 7. Save the file.
 
 8. Open config.py and fill in these fields with your info. Make sure not to remove the apostrophes surrounding them:
-
-9. username = 'BotRedditUsername'
-
-10. password = 'BotRedditPassword'
-
-11. client_id = 'RedditAppClientID'
-
-12. client_secret = 'RedditAppSecret'
-
+```
+username = 'BotRedditUsername'
+password = 'BotRedditPassword'
+client_id = 'RedditAppClientID'
+client_secret = 'RedditAppSecret'
+```
 13. Save the file.
 
 
 # Upload the Bot
-1. Open Git Bash (Windows key, then type Git Bash).
+1. Open Git Bash (Windows key, then type `Git Bash`).
 
-2. Enter `heroku login`
-
-It you press enter this will open a browser window and have you login to Heroku.
-The terminal should say you’re logged in now. If it hangs, try this.
-The next steps can be referenced in the Deploy tab on the Heroku site.
+2. Type `heroku login` in the terminal. This will open a browser window and have you login to Heroku. The terminal should say you’re logged in now. If it hangs, [try this](https://stackoverflow.com/questions/55955948/heroku-login-success-but-then-freezes). The next steps can be referenced in the Deploy tab on the Heroku site.
+```
 $ cd c:folderyourbotisin
+
 $ git init
+
 $ heroku git:remote -a yourbotname
+
 $ git add .
+
 $ git commit -am "make it better"
+
 $ git push heroku master
-Once it is it done deploying, go to back to the Heroku page.
-Select the ‘Resources’ tab.
-Click the pen icon next to ‘worker python bot.py’
-Now click the toggle to the left of the pen to activate the process. It should turn blue.
-Click confirm.
-Select More > View logs
-Watch the bot in action!
+````
+3. Once it is it done deploying, go to back to the Heroku page.
+
+4. Select the ‘Resources’ tab.
+
+5. Click the pen icon next to ‘worker python bot.py’
+
+6. Now click the toggle to the left of the pen to activate the process. It should turn blue.
+
+7. Click confirm.
+
+8. Select More > View logs
+
+9. Watch the bot in action!
 
 
 # Upgrade your Heroku hours
