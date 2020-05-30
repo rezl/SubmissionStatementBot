@@ -85,9 +85,12 @@ Heroku limits the number of hours they will run your bot. We can increase these 
 
 
 
-#Other related guides:
+# Other related guides:
 https://github.com/kylelobo/Reddit-Bot#deploying_the_bot
+
 https://github.com/Visovsiouk/reddit-watchbot
+
 https://pythontips.com/2017/04/13/making-a-reddit-facebook-messenger-bot/
+
 https://github.com/mconstanza/redditBotHackathon
 
