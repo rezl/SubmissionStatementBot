@@ -75,7 +75,7 @@ def check_submissions(submissions, valid_posts):
         post_time = dt.utcfromtimestamp(ts)
 
         # Skip any post before today
-        if post_time <= dt(2020, 5, 27, 0, 0):
+        if post_time <= dt(2099, 5, 27, 0, 0):
             continue
 
         # Print a line break between each post
