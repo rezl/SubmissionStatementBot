@@ -84,7 +84,7 @@ password = 'BotRedditPassword'
 client_id = 'RedditAppClientID'
 client_secret = 'RedditAppSecret'
 ```
-13. Save the file.
+9. Save the file.
 
 
 # Upload the Bot
