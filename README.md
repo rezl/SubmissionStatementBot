@@ -5,13 +5,10 @@ A Reddit bot for requiring submission statements on link posts. If the OP does n
 - Python 3.7+
 - praw 6.3.1+
 
-# How to
+# How to Host the Bot on Heroku
+This guide assumes you’re using Windows and this bot's code. Although, this guide should work for getting a general Reddit bot running on Heroku as well. The main advantage of Heroku is that their base plan included enough hours to run this bot for free.
 
-Hosting a Reddit Bot on Heroku
-
-This guide assumes you’re using Windows and using the Submission Statement bot code. Technically, this guide should work just as well for getting a general Reddit bot running on Heroku.
-
-Setup Git
+#Setup Git
 Create a Github account. This is where we’ll be hosting the bot’s code.
 Go to the bot repo and select ‘fork’ to create a copy of it to on your own github account. 
 From your new repo, select ‘Clone or download’ and then ‘Download ZIP’ to download a local copy. We’ll come back to this later.
@@ -20,7 +17,7 @@ Make note of (copy/paste somewhere) the URL linking to your repo (e.g. https://g
 Go here and install Git if you don’t have it already.
 
 
-Setup Heroku
+#Setup Heroku
 Create a Heroku account. This is the service which will be running the bot.
 Once created, create a new Heroku app.
 Add an app name and select ‘create app’
@@ -30,7 +27,7 @@ Click ‘Deploy” tab to go to the deploy instructions. Keep this open for late
 Install Heroku SLI. This will allow us to manage the app via a terminal.
 
 
-Setup Reddit
+#Setup Reddit
 Create a new Reddit account with the name you’d like for your bot.
 Login into your primary Reddit account which moderates your subreddit.
 Go to https://old.reddit.com/r/YOURSUBREDDIT/about/moderators/ and invite the bot to become a moderator with full permissions.
@@ -44,7 +41,7 @@ Select ‘create app’.
 Make note of the secret code for the next steps.
 
 
-Configure the Bot
+#Configure the Bot
 Take the local copy of your repo and extract  it to wherever you’d like it to live. I put it at the root of my hard drive (e.g. c:/mybot) so I don’t have to type out the path once we’re in the terminal.
 Open bot.py
 Change the number in RGX_SENTENCE_3 to set the minimum number of characters you want to require for the bot to consider a submission statement valid (default is fifty).
@@ -61,7 +58,7 @@ client_secret = 'RedditAppSecret'
 Save the file.
 
 
-Upload the Bot
+#Upload the Bot
 Open Git Bash (Windows key, then type Git Bash).
 $ heroku login
 It you press enter this will open a browser window and have you login to Heroku.
@@ -82,13 +79,13 @@ Select More > View logs
 Watch the bot in action!
 
 
-Upgrade your Heroku hours
+#Upgrade your Heroku hours
 Go to the Heroku billing page (https://dashboard.heroku.com/account/billing) and add a credit card to your account. 
 Heroku limits the number of hours they will run your bot. We can increase these by attaching a credit card to your account. Your bot will not use up it’s free monthly allowance, but will not have enough free hours without a card attached.
 
 
 
-Other related guides:
+#Other related guides:
 https://github.com/kylelobo/Reddit-Bot#deploying_the_bot
 https://github.com/Visovsiouk/reddit-watchbot
 https://pythontips.com/2017/04/13/making-a-reddit-facebook-messenger-bot/
