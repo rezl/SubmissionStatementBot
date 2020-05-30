@@ -10,10 +10,15 @@ This guide assumes you’re using Windows and this bot's code. Although, this gu
 
 # Setup Git
 Create a Github account. This is where we’ll be hosting the bot’s code.
+
 Go to the bot repo and select ‘fork’ to create a copy of it to on your own github account. 
+
 From your new repo, select ‘Clone or download’ and then ‘Download ZIP’ to download a local copy. We’ll come back to this later.
+
 Make note of (copy/paste somewhere) your Reddit app’s Client ID. This the string directly under ‘personal use script’. This is your Reddit App Client ID.
+
 Make note of (copy/paste somewhere) the URL linking to your repo (e.g. https://github.com/yourusername/collapse). This is your Github Repo URL.
+
 Go here and install Git if you don’t have it already.
 
 
