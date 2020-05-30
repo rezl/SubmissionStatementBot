@@ -35,7 +35,7 @@ Create a new Reddit account with the name you’d like for your bot.
 Login into your primary Reddit account which moderates your subreddit.
 Go to https://old.reddit.com/r/YOURSUBREDDIT/about/moderators/ and invite the bot to become a moderator with full permissions.
 Log back into the bot’s accounts and accept the invitation.
-Go here https://old.reddit.com/prefs/apps/ and select ‘Create and app’
+Go to https://old.reddit.com/prefs/apps/ and select ‘Create and app’
 Type a name for your app and choose ‘script’.
 Write a short description of what your bot will be doing.
 Set the 'about' URI to your Github Repo URL.
@@ -83,12 +83,12 @@ Watch the bot in action!
 
 
 Upgrade your Heroku hours
-Go to the Heroku billing page and add a credit card to your account. https://dashboard.heroku.com/account/billing
+Go to the Heroku billing page (https://dashboard.heroku.com/account/billing) and add a credit card to your account. 
 Heroku limits the number of hours they will run your bot. We can increase these by attaching a credit card to your account. Your bot will not use up it’s free monthly allowance, but will not have enough free hours without a card attached.
 
 
 
-Other helpful guides:
+Other related guides:
 https://github.com/kylelobo/Reddit-Bot#deploying_the_bot
 https://github.com/Visovsiouk/reddit-watchbot
 https://pythontips.com/2017/04/13/making-a-reddit-facebook-messenger-bot/
