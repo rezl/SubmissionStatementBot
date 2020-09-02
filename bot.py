@@ -1,10 +1,11 @@
 import re
 import sys
-import praw
 import time
 import traceback
+from datetime import datetime, timedelta
+from typing import List, Set, NoReturn
 
-from datetime import datetime as dt, timedelta
+import praw
 
 # This is a file in the same folder (called config.py)
 import config
@@ -45,7 +46,7 @@ class BadPostError(Exception):
         self.user_message = user_message
 
 
-def reddit_login():
+def reddit_login() -> praw.reddit.Reddit:
     print('Connecting to reddit...')
     reddit = praw.Reddit(client_id=config.client_id,
                          client_secret=config.client_secret,
@@ -56,14 +57,14 @@ def reddit_login():
     return reddit
 
 
-def is_friday_in_usa(utc_time):
+def is_friday_in_usa(utc_time: datetime) -> bool:
     """Checks if a datetime is Friday in UTC+4"""
     offset_time = utc_time + timedelta(hours=-4)
     print(f"Time check: {utc_time}, {offset_time}, {offset_time.date().isoweekday()}")
     return offset_time.date().isoweekday() == 5
 
 
-def check_submission_for_submission_statement(submission):
+def check_submission_for_submission_statement(submission: praw.reddit.Submission) -> bool:
     """
     Check if the submission has a valid submission statement.
     :param submission: The PRAW Submission to check.
@@ -72,8 +73,8 @@ def check_submission_for_submission_statement(submission):
     """
     if submission.is_self:
         return True
-    post_time = dt.utcfromtimestamp(submission.created_utc)
-    current_time = dt.utcnow()
+    post_time = datetime.utcfromtimestamp(submission.created_utc)
+    current_time = datetime.utcnow()
 
     # Number of whole hours (seconds / 60 / 60) between posts
     hours_since_post = int((current_time - post_time).seconds / 1800)
@@ -89,7 +90,7 @@ def check_submission_for_submission_statement(submission):
     raise BadPostError('Op has NOT left a valid comment!', SUBMISSION_STATEMENT_REMOVAL_REPLY)
 
 
-def check_submission_for_low_effort(submission):
+def check_submission_for_low_effort(submission: praw.reddit.Submission) -> bool:
     """
     Check if the submission is a low effort post outside the given time frame.
     :param submission: The PRAW Submission to check.
@@ -102,13 +103,13 @@ def check_submission_for_low_effort(submission):
     if submission.link_flair_text != LOW_EFFORT_FLAIR_NAME:
         return True
 
-    post_time = dt.utcfromtimestamp(submission.created_utc)
+    post_time = datetime.utcfromtimestamp(submission.created_utc)
     if is_friday_in_usa(post_time):
         return True
     raise BadPostError('Low Effort post not on a Friday!', LOW_EFFORT_REMOVAL_REPLY)
 
 
-def check_submissions(submissions, valid_submission_ids):
+def check_submissions(submissions: List[praw.reddit.Submission], valid_submission_ids: Set[str]) -> None:
     """
     Check the list of submissions and remove them if they break the rules.
     :param submissions: A list of PRAW Submission objects.
@@ -138,7 +139,7 @@ def check_submissions(submissions, valid_submission_ids):
             print('Post removed.')
 
 
-def main():
+def main() -> NoReturn:
     try:
         reddit = reddit_login()
         subreddit = reddit.subreddit(SUB_NAME)
