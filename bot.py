@@ -2,31 +2,47 @@ import re
 import sys
 import praw
 import time
+import traceback
 
-from datetime import datetime as dt, timedelta as td, date
+from datetime import datetime as dt, timedelta
 
 # This is a file in the same folder (called config.py)
 import config
 
 # Created by /u/epicmindwarp who is amazing
 # Frankenstiened by /u/LetsTalkUFOs
-# 2020-04-03
+# Further modified by /u/iPlain
+# 2020-09-03
 RGX_SENTENCE_3 = r'(?:.{50})'  # Minimum 50 characters
 
 SUB_NAME = 'ENTER_YOUR_SUBREDDIT_NAME'  # Set subreddit here
 
-USER_AGENT = f'Post Removal Bot for /r/{SUB_NAME} - v0.2'  # Info for reddit API
+USER_AGENT = f'Post Removal Bot for /r/{SUB_NAME} - v0.3'  # Info for reddit API
 
-MINIMUM_HOURS = 1  # Number of hours a post must be
+MINIMUM_HOURS_FOR_SUBMISSION_STATEMENT = 1  # Number of hours a post must be
 
 SLEEP_SECONDS = 300  # Number of seconds to sleep between scans (300 = 5 minutes)
 
-REMOVAL_REPLY = '''Your post has been removed for not including a submission statement. (comment on your own post). 
-If you still wish to share your post you must resubmit your link accompanied by a submission statement of at least 
-fifty characters. 
+LOW_EFFORT_FLAIR_NAME = 'Low Effort'
+
+SUBMISSION_STATEMENT_REMOVAL_REPLY = '''Your post has been removed for not including a submission statement. (comment 
+on your own post). If you still wish to share your post you must resubmit your link accompanied by a submission 
+statement of at least fifty characters. 
 
 This is a bot. Replies will not receive responses.
 '''
+
+LOW_EFFORT_REMOVAL_REPLY = '''Your post has been removed as Low Effort posts are only allowed on Shitpost 
+Fridays. 
+
+This is a bot. Replies will not receive responses.
+'''
+
+
+class BadPostError(Exception):
+    def __init__(self, log_message, user_message):
+        self.log_message = log_message
+        self.user_message = user_message
 
 
 def reddit_login():
@@ -40,102 +56,86 @@ def reddit_login():
     return reddit
 
 
-def get_latest_submissions(subreddit):
-    print(f'1.1 - Getting posts  from {SUB_NAME}...')
-    submissions = subreddit.new(limit=10)
-    return submissions
+def is_friday_in_usa(utc_time):
+    """Checks if a datetime is Friday in UTC+4"""
+    offset_time = utc_time + timedelta(hours=-4)
+    print(f"Time check: {utc_time}, {offset_time}, {offset_time.date().isoweekday()}")
+    return offset_time.date().isoweekday() == 5
 
 
-def check_submissions(submissions, valid_posts):
+def check_submission_for_submission_statement(submission):
+    """
+    Check if the submission has a valid submission statement.
+    :param submission: The PRAW Submission to check.
+    :return: True if the post is valid. False if the post is not validated but should not be removed.
+    :raises: BadPostError if the post should be removed.
+    """
+    if submission.is_self:
+        return True
+    post_time = dt.utcfromtimestamp(submission.created_utc)
+    current_time = dt.utcnow()
+
+    # Number of whole hours (seconds / 60 / 60) between posts
+    hours_since_post = int((current_time - post_time).seconds / 1800)
+
+    if hours_since_post < MINIMUM_HOURS_FOR_SUBMISSION_STATEMENT:
+        # If it hasn't been long enough, don't remove, but check later.
+        return False
+    for top_level_comment in submission.comments:
+        if top_level_comment.is_submitter:
+            if re.match(RGX_SENTENCE_3, top_level_comment.body):
+                return True
+    # No valid comment from OP
+    raise BadPostError('Op has NOT left a valid comment!', SUBMISSION_STATEMENT_REMOVAL_REPLY)
+
+
+def check_submission_for_low_effort(submission):
+    """
+    Check if the submission is a low effort post outside the given time frame.
+    :param submission: The PRAW Submission to check.
+    :return: True if the post is valid. False if the post is not validated but should not be removed.
+    :raises: BadPostError if the post should be removed.
+    """
+    if submission.link_flair_text is None:
+        # If there is no flair, don't remove, but check later.
+        return False
+    if submission.link_flair_text != LOW_EFFORT_FLAIR_NAME:
+        return True
+
+    post_time = dt.utcfromtimestamp(submission.created_utc)
+    if is_friday_in_usa(post_time):
+        return True
+    raise BadPostError('Low Effort post not on a Friday!', LOW_EFFORT_REMOVAL_REPLY)
+
+
+def check_submissions(submissions, valid_submission_ids):
+    """
+    Check the list of submissions and remove them if they break the rules.
+    :param submissions: A list of PRAW Submission objects.
+    :param valid_submission_ids: A set of Reddit submission IDs.
+    :return: None.
+    """
     for submission in submissions:
-
-        # Ignore self posts
-        if submission.is_self:
+        if submission.id in valid_submission_ids:
             continue
-
-        # Get the UTC unix timestamp
-        ts = submission.created_utc
-
-        # Convert to datetime format
-        post_time = dt.utcfromtimestamp(ts)
-
-        # Skip any post before today
-        if post_time <= dt(2099, 5, 27, 0, 0):
-            continue
-
-        # Print a line break between each post
-        print('\n')
-
-        # Current the current UTC time
-        current_time = dt.utcnow()
-
-        # Number of whole hours (seconds / 60 / 60) between posts
-        hours_since_post = int((current_time - post_time).seconds / 1800)
-
-        print(f'{post_time} - ({hours_since_post} hrs) - {submission.title}')
-
-        # Check if we've already marked this as valid
-        if submission.id in valid_posts:
-            print('\t # Already checked - valid.')
-
-            # Go to next loop
-            continue
-
-        # Check if passed the minimum
-        if hours_since_post >= MINIMUM_HOURS:
-
-            # Once the minimum has passed
-            # Create a flag, if this stays False, post to be removed
-            op_left_correct_comment = False
-
-            # Get all top level comments from the post
-            for top_level_comment in submission.comments:
-
-                # Look for a comment by the author
-                if top_level_comment.is_submitter:
-
-                    print('\tOP has commented')
-
-                    # Reset the variable
-                    match_found = None
-
-                    # Grab the body
-                    comment_body = top_level_comment.body
-
-                    # Check if it matches our regex - multiline not required as it displays \n line breaks
-                    match_found = re.search(RGX_SENTENCE_3, comment_body)
-
-                    # If there is no match fiound
-                    if not match_found is None:
-                        # Flag as correct
-                        op_left_correct_comment = True
-
-                        # Leave this loop
-                        break
-
-            # Check if the flag has changed
-            if not op_left_correct_comment:
-
-                print('\tOP has NOT left a valid comment!')
-
-                # # Remove and lock the post
-                submission.mod.remove()
-                submission.mod.lock()
-
-                # # Leave a comment and remove it
-                removal_comment = submission.reply(REMOVAL_REPLY)
-                removal_comment.mod.lock()
-                removal_comment.mod.distinguish(how='yes', sticky=True)
-
-                print('\t# Post removed.')
-
+        print(f"Submission: {submission.title}, {submission.url}")
+        try:
+            low_effort_valid = check_submission_for_low_effort(submission)
+            sub_statement_valid = check_submission_for_submission_statement(submission)
+            if low_effort_valid and sub_statement_valid:
+                print("Valid submission")
+                valid_submission_ids.add(submission.id)
             else:
-                # If correct, add to exceptions list
-                print('\t # Post valid')
-                valid_posts.append(submission.id)
-
-    # Send back the posts we've marked as valid
-    return valid_posts
+                print(f"Something not yet valid but not remove worthy: Low effort valid: {low_effort_valid}, "
+                      f"Submission statement valid: {sub_statement_valid}")
+        except BadPostError as e:
+            print(e.log_message)
+            submission.mod.remove()
+            submission.mod.lock()
+            removal_comment = submission.reply(e.user_message)
+            removal_comment.mod.lock()
+            removal_comment.mod.distinguish(sticky=True)
+            print('Post removed.')
 
 
 def main():
@@ -147,28 +147,24 @@ def main():
         sys.exit(1)
 
     # A list of posts already valid, keep this in memory so we don't keep checking these
-    valid_posts = []
+    valid_posts = set()
 
     # Loop 4eva
     while True:
         try:
             # Get the latest submissions after emptying variable
-            submissions = None
-            submissions = get_latest_submissions(subreddit)
-
-            # If there are posts, start scanning
-            if submissions is not None:
-                # Once you have submissions, check valid posts
-                valid_posts = check_submissions(submissions, valid_posts)
+            print('')
+            print(f'Getting posts from {SUB_NAME}...')
+            submissions = subreddit.new()
+            print('Checking submissions...')
+            check_submissions(submissions, valid_posts)
         except Exception as e:
             print(f'### ERROR - Could not get posts from reddit.\n{e}')
+            traceback.print_exc()
 
-        # Loop every X seconds (5 minutes)
-        sleep_until = (dt.now() + td(0, SLEEP_SECONDS)).strftime('%H:%M:%S')  # Add 0 days, 300 seconds
-        print(f'\nSleeping until {sleep_until}')  # %Y-%m-%d
-
+        print(f'Sleeping for {SLEEP_SECONDS} seconds')
         time.sleep(SLEEP_SECONDS)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
