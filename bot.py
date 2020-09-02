@@ -9,59 +9,44 @@ from datetime import datetime as dt, timedelta as td, date
 import config
 
 # Created by /u/epicmindwarp who is amazing
-#Frankenstiened by /u/LetsTalkUFOs
+# Frankenstiened by /u/LetsTalkUFOs
 # 2020-04-03
-RGX_SENTENCE_3 = r'(?:.{50})' # Minimum 50 characters
+RGX_SENTENCE_3 = r'(?:.{50})'  # Minimum 50 characters
 
+SUB_NAME = 'ENTER_YOUR_SUBREDDIT_NAME'  # Set subreddit here
 
+USER_AGENT = f'Post Removal Bot for /r/{SUB_NAME} - v0.2'  # Info for reddit API
 
-SUB_NAME    = 'ENTER_YOUR_SUBREDDIT_NAME'    # Set subreddit here
+MINIMUM_HOURS = 1  # Number of hours a post must be
 
-USER_AGENT  = f'Post Removal Bot for /r/{SUB_NAME} - v0.2'      # Info for reddit API
+SLEEP_SECONDS = 300  # Number of seconds to sleep between scans (300 = 5 minutes)
 
-MINIMUM_HOURS = 1       # Number of hours a post must be
-
-SLEEP_SECONDS = 300     # Number of seconds to sleep between scans (300 = 5 minutes)
-
-REMOVAL_REPLY = '''
-Your post has been removed for not including a submission statement. (comment on your own post). If you still wish to share your post you must resubmit your link accompanied by a submission statement of at least fifty characters.
+REMOVAL_REPLY = '''Your post has been removed for not including a submission statement. (comment on your own post). 
+If you still wish to share your post you must resubmit your link accompanied by a submission statement of at least 
+fifty characters. 
 
 This is a bot. Replies will not receive responses.
 '''
 
 
 def reddit_login():
-
     print('Connecting to reddit...')
-
-    try:
-        reddit = praw.Reddit(   client_id= config.client_id,
-                                client_secret= config.client_secret,
-                                user_agent=USER_AGENT,
-                                username=config.username,
-                                password=config.password)
-
-    except Exception as e:
-        print(f'\t### ERROR - Could not login.\n\t{e}')
-
+    reddit = praw.Reddit(client_id=config.client_id,
+                         client_secret=config.client_secret,
+                         user_agent=USER_AGENT,
+                         username=config.username,
+                         password=config.password)
     print(f'Logged in as: {reddit.user.me()}')
-    
     return reddit
 
 
-
 def get_latest_submissions(subreddit):
-
     print(f'1.1 - Getting posts  from {SUB_NAME}...')
-
     submissions = subreddit.new(limit=10)
-    
     return submissions
 
 
-
 def check_submissions(submissions, valid_posts):
-
     for submission in submissions:
 
         # Ignore self posts
@@ -105,7 +90,7 @@ def check_submissions(submissions, valid_posts):
 
             # Get all top level comments from the post
             for top_level_comment in submission.comments:
-                
+
                 # Look for a comment by the author
                 if top_level_comment.is_submitter:
 
@@ -122,7 +107,6 @@ def check_submissions(submissions, valid_posts):
 
                     # If there is no match fiound
                     if not match_found is None:
-                        
                         # Flag as correct
                         op_left_correct_comment = True
 
@@ -131,7 +115,7 @@ def check_submissions(submissions, valid_posts):
 
             # Check if the flag has changed
             if not op_left_correct_comment:
-                
+
                 print('\tOP has NOT left a valid comment!')
 
                 # # Remove and lock the post
@@ -153,23 +137,13 @@ def check_submissions(submissions, valid_posts):
     # Send back the posts we've marked as valid
     return valid_posts
 
-############################################################################
-############################################################################
-############################################################################
 
-# Bot starts here
-
-if __name__ == "__main__":
-
+def main():
     try:
-            # Connect to reddit and return the object
-            r = reddit_login()
-
-            # Connect to the sub
-            subreddit = r.subreddit(SUB_NAME)
-
+        reddit = reddit_login()
+        subreddit = reddit.subreddit(SUB_NAME)
     except Exception as e:
-        print('\t\n### ERROR - Could not connect to reddit.')
+        print(f'### ERROR - Could not connect to Reddit.\n{e}')
         sys.exit(1)
 
     # A list of posts already valid, keep this in memory so we don't keep checking these
@@ -177,22 +151,24 @@ if __name__ == "__main__":
 
     # Loop 4eva
     while True:
-
         try:
             # Get the latest submissions after emptying variable
             submissions = None
             submissions = get_latest_submissions(subreddit)
+
+            # If there are posts, start scanning
+            if submissions is not None:
+                # Once you have submissions, check valid posts
+                valid_posts = check_submissions(submissions, valid_posts)
         except Exception as e:
-            print('\t### ERROR - Could not get posts from reddit')
-
-        # If there are posts, start scanning
-        if not submissions is None:
-
-            # Once you have submissions, check valid posts
-            valid_posts = check_submissions(submissions, valid_posts)
+            print(f'### ERROR - Could not get posts from reddit.\n{e}')
 
         # Loop every X seconds (5 minutes)
         sleep_until = (dt.now() + td(0, SLEEP_SECONDS)).strftime('%H:%M:%S')  # Add 0 days, 300 seconds
-        print(f'\nSleeping until {sleep_until}') #%Y-%m-%d 
-        
+        print(f'\nSleeping until {sleep_until}')  # %Y-%m-%d
+
         time.sleep(SLEEP_SECONDS)
+
+
+if __name__ == "__main__":
+    main()
