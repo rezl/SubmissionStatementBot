@@ -60,7 +60,6 @@ def reddit_login() -> praw.reddit.Reddit:
 def is_friday_in_usa(utc_time: datetime) -> bool:
     """Checks if a datetime is Friday in UTC+4"""
     offset_time = utc_time + timedelta(hours=-4)
-    print(f"Time check: {utc_time}, {offset_time}, {offset_time.date().isoweekday()}")
     return offset_time.date().isoweekday() == 5
 
 
@@ -84,7 +83,7 @@ def check_submission_for_submission_statement(submission: praw.reddit.Submission
         return False
     for top_level_comment in submission.comments:
         if top_level_comment.is_submitter:
-            if re.match(RGX_SENTENCE_3, top_level_comment.body):
+            if re.search(RGX_SENTENCE_3, top_level_comment.body):
                 return True
     # No valid comment from OP
     raise BadPostError('Op has NOT left a valid comment!', SUBMISSION_STATEMENT_REMOVAL_REPLY)
@@ -117,9 +116,9 @@ def check_submissions(submissions: List[praw.reddit.Submission], valid_submissio
     :return: None.
     """
     for submission in submissions:
-        if submission.id in valid_submission_ids:
+        if submission.id in valid_submission_ids or submission.distinguished:
             continue
-        print(f"Submission: {submission.title}, {submission.url}")
+        print(f"Submission: {submission.title}, {submission.permalink}")
         try:
             low_effort_valid = check_submission_for_low_effort(submission)
             sub_statement_valid = check_submission_for_submission_statement(submission)
