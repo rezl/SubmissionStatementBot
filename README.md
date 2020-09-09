@@ -71,24 +71,20 @@ The main advantage of Heroku is their base plan includes enough hours to host th
 
 2. Open **bot.py**
 
-3. Change the number in `RGX_SENTENCE_3` to set the minimum number of characters you want to require for the bot to consider a submission statement valid (default is fifty).
+3. Change `ENTER_YOUR_SUBREDDIT_NAME` to your sub’s name. 
 
-4. Change `ENTER_YOUR_SUBREDDIT_NAME` to your sub’s name. 
+4. Set the `MEME_REMOVAL_REPLY` text to whatever you’d like the bot to comment after removing a post
 
-5. Set the `REMOVAL_REPLY` text to whatever you’d like the bot to comment after removing a post
+5. Save the file.
 
-6. Change the line `if post_time <= dt(2099, 5, 27, 0, 0)`. The section `‘2099, 5, 27,’` is a date (year, month, day). The bot will not scan posts submitted earlier than this date. Setting this is important, since you don’t want it retroactively removing all the posts on your subreddit since the beginning of time. 
-
-7. Save the file.
-
-8. Open **config.py** and fill in these fields with your info. Make sure not to remove the apostrophes surrounding them.
+6. Open **config.py** and fill in these fields with your info. Make sure not to remove the apostrophes surrounding them.
 ```
 username = 'BotRedditUsername'
 password = 'BotRedditPassword'
 client_id = 'RedditAppClientID'
 client_secret = 'RedditAppSecret'
 ```
-9. Save the file.
+7. Save the file.
 
 
 # Upload the Bot
