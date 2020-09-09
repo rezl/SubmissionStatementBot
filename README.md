@@ -1,7 +1,9 @@
-# Submission Statement Bot
-This is a Reddit bot for requiring submission statements on link posts. If an OP does not include a statement (comment on their own post) within a certain timeframe, the post is removed. 
+# Flair only on certain days bot
+This is a Reddit bot for only allowing certain post flairs on certain days.
+If a post with the specified flair is posted on the wrong day, it will be removed with the given message.
 
-Credit goes to [epicmindwarp](https://github.com/epicmindwarp) for writing this bot. I decided to document the process for getting it up and running on Heroku for free so it can potentially be more available to various moderators. You can currently see this bot running over at [r/collapse](https://reddit.com/r/collapse) as [CollapseBot](https://reddit.com/user/collapsebot).
+Credit goes to [epicmindwarp](https://github.com/epicmindwarp) for writing the initial version of this bot.
+Also credit to [rezl](https://github.com/rezl) for extending it and writing this README.
 
 # Requirements
 - Python 3.7+
@@ -13,7 +15,7 @@ The main advantage of Heroku is their base plan includes enough hours to host th
 # Setup Git
 1. [Create a Github account.](https://github.com/join) 
 
-2. [Assuming you're reading this on the repo page](https://github.com/rezl/SubmissionStatementBot), select ‘fork’ to create a copy of it to your Github account. 
+2. [Assuming you're reading this on the repo page](https://github.com/jackodsteel/SubmissionStatementBot), select ‘fork’ to create a copy of it to your Github account. 
 
 3. From your new repo, select **Clone or download** and then **Download ZIP** to download a local copy. We’ll come back to this later.
 

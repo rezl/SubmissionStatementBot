@@ -14,27 +14,16 @@ import config
 # Frankenstiened by /u/LetsTalkUFOs
 # Further modified by /u/iPlain
 # 2020-09-03
-RGX_SENTENCE_3 = r'(?:.{50})'  # Minimum 50 characters
 
 SUB_NAME = 'ENTER_YOUR_SUBREDDIT_NAME'  # Set subreddit here
 
 USER_AGENT = f'Post Removal Bot for /r/{SUB_NAME} - v0.3'  # Info for reddit API
 
-MINIMUM_HOURS_FOR_SUBMISSION_STATEMENT = 1  # Number of hours a post must be
-
 SLEEP_SECONDS = 300  # Number of seconds to sleep between scans (300 = 5 minutes)
 
-LOW_EFFORT_FLAIR_NAME = 'Low Effort'
+MEME_FLAIR_NAME = 'MEME'
 
-SUBMISSION_STATEMENT_REMOVAL_REPLY = '''Your post has been removed for not including a submission statement. (comment 
-on your own post). If you still wish to share your post you must resubmit your link accompanied by a submission 
-statement of at least fifty characters. 
-
-This is a bot. Replies will not receive responses.
-'''
-
-LOW_EFFORT_REMOVAL_REPLY = '''Your post has been removed as Low Effort posts are only allowed on Shitpost 
-Fridays. 
+MEME_REMOVAL_REPLY = '''Your post has been removed as Meme posts are only allowed on Meme Mondays.
 
 This is a bot. Replies will not receive responses.
 '''
@@ -57,41 +46,15 @@ def reddit_login() -> praw.reddit.Reddit:
     return reddit
 
 
-def is_friday_in_usa(utc_time: datetime) -> bool:
-    """Checks if a datetime is Friday in UTC+4"""
+def is_monday_in_usa(utc_time: datetime) -> bool:
+    """Checks if a datetime is Monday in UTC+4"""
     offset_time = utc_time + timedelta(hours=-4)
-    return offset_time.date().isoweekday() == 5
+    return offset_time.date().isoweekday() == 1
 
 
-def check_submission_for_submission_statement(submission: praw.reddit.Submission) -> bool:
+def check_submission_for_meme_monday(submission: praw.reddit.Submission) -> bool:
     """
-    Check if the submission has a valid submission statement.
-    :param submission: The PRAW Submission to check.
-    :return: True if the post is valid. False if the post is not validated but should not be removed.
-    :raises: BadPostError if the post should be removed.
-    """
-    if submission.is_self:
-        return True
-    post_time = datetime.utcfromtimestamp(submission.created_utc)
-    current_time = datetime.utcnow()
-
-    # Number of whole hours (seconds / 60 / 60) between posts
-    hours_since_post = int((current_time - post_time).seconds / 1800)
-
-    if hours_since_post < MINIMUM_HOURS_FOR_SUBMISSION_STATEMENT:
-        # If it hasn't been long enough, don't remove, but check later.
-        return False
-    for top_level_comment in submission.comments:
-        if top_level_comment.is_submitter:
-            if re.search(RGX_SENTENCE_3, top_level_comment.body):
-                return True
-    # No valid comment from OP
-    raise BadPostError('Op has NOT left a valid comment!', SUBMISSION_STATEMENT_REMOVAL_REPLY)
-
-
-def check_submission_for_low_effort(submission: praw.reddit.Submission) -> bool:
-    """
-    Check if the submission is a low effort post outside the given time frame.
+    Check if the submission is a meme post outside the given time frame.
     :param submission: The PRAW Submission to check.
     :return: True if the post is valid. False if the post is not validated but should not be removed.
     :raises: BadPostError if the post should be removed.
@@ -99,13 +62,13 @@ def check_submission_for_low_effort(submission: praw.reddit.Submission) -> bool:
     if submission.link_flair_text is None:
         # If there is no flair, don't remove, but check later.
         return False
-    if submission.link_flair_text != LOW_EFFORT_FLAIR_NAME:
+    if submission.link_flair_text != MEME_FLAIR_NAME:
         return True
 
     post_time = datetime.utcfromtimestamp(submission.created_utc)
-    if is_friday_in_usa(post_time):
+    if is_monday_in_usa(post_time):
         return True
-    raise BadPostError('Low Effort post not on a Friday!', LOW_EFFORT_REMOVAL_REPLY)
+    raise BadPostError('Meme post not on a Monday!', MEME_REMOVAL_REPLY)
 
 
 def check_submissions(submissions: List[praw.reddit.Submission], valid_submission_ids: Set[str]) -> None:
@@ -120,14 +83,12 @@ def check_submissions(submissions: List[praw.reddit.Submission], valid_submissio
             continue
         print(f"Submission: {submission.title}, {submission.permalink}")
         try:
-            low_effort_valid = check_submission_for_low_effort(submission)
-            sub_statement_valid = check_submission_for_submission_statement(submission)
-            if low_effort_valid and sub_statement_valid:
+            meme_monday_valid = check_submission_for_meme_monday(submission)
+            if meme_monday_valid:
                 print("Valid submission")
                 valid_submission_ids.add(submission.id)
             else:
-                print(f"Something not yet valid but not remove worthy: Low effort valid: {low_effort_valid}, "
-                      f"Submission statement valid: {sub_statement_valid}")
+                print(f"Doesn't yet have a flair, so won't remove, but will check back later.")
         except BadPostError as e:
             print(e.log_message)
             submission.mod.remove()
