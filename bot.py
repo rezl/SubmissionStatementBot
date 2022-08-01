@@ -13,7 +13,7 @@ import time
 
 class Settings:
     # set to True to prevent any bot actions (report, remove, comments)
-    is_dry_run = True
+    is_dry_run = False
 
     report_submission_statement_insufficient_length = False
     report_stale_unmoderated_posts = True
@@ -144,7 +144,7 @@ class Post:
         if Settings.is_dry_run:
             print("\tDRY RUN!!!")
             return
-        if self.contains_report(username, True):
+        if self.contains_report(reason, True):
             print("\tPost has already been reported")
             return
         self.submission.report(reason)
