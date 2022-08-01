@@ -275,8 +275,7 @@ class Janitor:
                 reason = "Post has no submission statement after timeout. Please take a look."
                 post.report_post(reason, self.username)
             else:
-                reason = "No submission statement"
-                post.remove_post(reason)
+                post.remove_post(Settings.removal_reason, "No submission statement")
 
     def handle_posts(self):
         print(f"Checking posts")
