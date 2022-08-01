@@ -21,6 +21,7 @@ class Settings:
 
     post_check_frequency_mins = 5
     post_check_threshold_mins = 60
+    consecutive_old_posts = 10
     stale_post_check_frequency_mins = 60
     stale_post_check_thresholds_mins = 12 * 60
 
@@ -90,7 +91,7 @@ class Post:
             if any(report_substring in r for r in report):
                 return True
         if check_dismissed_reports:
-            # posts which haven"t had dismissed reports don't contain the attr
+            # posts which haven't had dismissed reports don't contain the attr
             if hasattr(self.submission, "mod_reports_dismissed"):
                 for report in self.submission.mod_reports_dismissed:
                     if report_substring in report[0]:
@@ -213,11 +214,20 @@ class Janitor:
 
     def get_submissions(self, check_posts_after):
         submissions = set()
+        consecutive_old = 0
+        # posts are provided in order of: newly submitted/approved (from automod block)
         for post in self.subreddit.new():
-            # posts are provided newest to oldest, return once post is too old
-            if post.created_utc < check_posts_after:
+            if consecutive_old > Settings.consecutive_old_posts:
                 return submissions
-            submissions.add(Post(post))
+
+            if post.created_utc > check_posts_after:
+                submissions.add(Post(post))
+                consecutive_old = 0
+            # old, approved posts can show up in new amongst truly new posts
+            elif hasattr(post, "approved_at_utc"):
+                consecutive_old += 1
+            elif post.created_utc < check_posts_after:
+                consecutive_old += 1
         return submissions
 
     def handle_low_effort(self, post):
