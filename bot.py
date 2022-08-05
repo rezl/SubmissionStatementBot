@@ -177,8 +177,8 @@ class Janitor:
         bot_username = os.environ["BOT_USERNAME"] if "BOT_USERNAME" in os.environ else config.BOT_USERNAME
         bot_password = os.environ["BOT_PASSWORD"] if "BOT_PASSWORD" in os.environ else config.BOT_PASSWORD
         subreddit_name = os.environ["SUBREDDIT"] if "SUBREDDIT" in os.environ else config.SUBREDDIT
-        print("CONFIG: client_id=" + client_id + " client_secret=" + client_secret +
-              " bot_username=" + bot_username + " bot_password=" + bot_password +
+        print("CONFIG: client_id=" + client_id + " client_secret=" + "*********" +
+              " bot_username=" + bot_username + " bot_password=" + "*********" +
               " subreddit_name=" + subreddit_name)
 
         self.reddit = praw.Reddit(
