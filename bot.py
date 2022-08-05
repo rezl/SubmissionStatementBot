@@ -139,7 +139,7 @@ class Post:
     def is_removed(self):
         return self.submission.removed
 
-    def report_post(self, reason, username):
+    def report_post(self, reason):
         print(f"\tReporting post, reason: {reason}")
         if Settings.is_dry_run:
             print("\tDRY RUN!!!")
@@ -259,7 +259,7 @@ class Janitor:
         if post.validate_submission_statement():
             if not post.submission_statement:
                 reason = "ERROR: no submission statement found, please check and report to devs"
-                post.report_post(reason, self.username)
+                post.report_post(reason)
                 print(reason)
                 raise Exception("invalid state: no submission statement found, but reported as valid")
             print("\tPost has submission statement")
@@ -271,7 +271,7 @@ class Janitor:
             if len(post.submission_statement.body) < Settings.submission_statement_minimum_char_length:
                 reason = "Submission statement is too short"
                 if Settings.report_submission_statement_insufficient_length:
-                    post.report_post(reason, self.username)
+                    post.report_post(reason)
                 else:
                     post.remove_post(Settings.removal_reason, reason)
         else:
@@ -279,13 +279,13 @@ class Janitor:
 
             if post.is_moderator_approved():
                 reason = "Moderator approved post, but there is no SS. Please double check."
-                post.report_post(reason, self.username)
+                post.report_post(reason)
             elif Settings.report_submission_statement_timeout:
                 reason = "Post has no submission statement after timeout. Please take a look."
-                post.report_post(reason, self.username)
+                post.report_post(reason)
             else:
                 reason = "There is no SS, but it may be in the link post description. Please check"
-                post.report_post(reason, self.username)
+                post.report_post(reason)
 
     def handle_posts(self):
         print(f"Checking posts")
@@ -315,7 +315,7 @@ class Janitor:
             if Settings.report_stale_unmoderated_posts:
                 reason = "This post is over " + str(round(Settings.stale_post_check_thresholds_mins / 60, 2)) + \
                          "hours old and has not been moderated. Please take a look!"
-                post.report_post(reason, self.username)
+                post.report_post(reason)
             else:
                 print(f"Not reporting stale unmoderated post: {post.submission.title}\n\t{post.submission.permalink}")
         self.time_unmoderated_last_checked = now
