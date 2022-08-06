@@ -20,7 +20,7 @@ class Settings:
     report_submission_statement_timeout = False
 
     post_check_frequency_mins = 5
-    post_check_threshold_mins = 60
+    post_check_threshold_mins = 2 * 60
     consecutive_old_posts = 10
     stale_post_check_frequency_mins = 60
     stale_post_check_thresholds_mins = 12 * 60
@@ -100,7 +100,8 @@ class Post:
 
     def has_bot_posted_ss(self, username):
         for comment in self.submission.comments:
-            if comment.author.name == username:
+            # filter removed comments to allow mods to delete current SS for bot to repost
+            if (comment.author.name == username) & (not comment.removed):
                 if Settings.submission_statement_bot_prefix in comment.body:
                     return True
         return False
