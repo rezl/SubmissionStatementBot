@@ -32,7 +32,7 @@ class Settings:
 
     low_effort_flair = ["casual friday", "low effort", "humor", "humour"]
     removal_reason = ("Your post has been removed for not including a submission statement, "
-                      "meaning a comment on your own post that provides context for the link. "
+                      "meaning post text or a comment on your own post that provides context for the link. "
                       "If you still wish to share your post you must resubmit your link "
                       "accompanied by a submission statement of at least "
                       "" + str(submission_statement_minimum_char_length) + "characters. "
