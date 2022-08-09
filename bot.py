@@ -106,6 +106,12 @@ class Post:
                     return True
         return False
 
+    def contains_comment(self, text):
+        for comment in self.submission.comments:
+            if text in comment.body:
+                return True
+        return False
+
     def has_time_expired(self):
         return self.created_time + Settings.submission_statement_time_limit_minutes < datetime.utcnow()
 
@@ -250,6 +256,21 @@ class Janitor:
             print("\tBot has already posted SS")
             return
 
+        # use link post's text if valid
+        if post.submission.selftext != '':
+            if len(post.submission.selftext) < Settings.submission_statement_minimum_char_length:
+                print("\tPost has short post-based submission statement")
+                text = "Hi, thanks for your contribution. It looks like you've included your submission statement " \
+                       "directly in your post, which is fine, but it is too short (min 150 chars). \n\n" \
+                       "You can either edit your post's text to >150 chars, or include a comment-based ss instead " \
+                       "(which I would post shortly, if it meets submission statement requirements).\n" \
+                       "Responses to this comment are not monitored."
+                if not post.contains_comment(text):
+                    post.reply_to_post(text, pin=False, lock=True)
+            else:
+                print("\tPost has valid post-based submission statement, not doing anything")
+                return
+
         # users are given time to post a submission statement
         if not post.has_time_expired():
             print("\tTime has not expired")
@@ -285,8 +306,7 @@ class Janitor:
                 reason = "Post has no submission statement after timeout. Please take a look."
                 post.report_post(reason)
             else:
-                reason = "There is no SS, but it may be in the link post description. Please check"
-                post.report_post(reason)
+                post.remove_post(Settings.removal_reason, "No submission statement")
 
     def handle_posts(self):
         print(f"Checking posts")
