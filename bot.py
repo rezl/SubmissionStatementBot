@@ -31,7 +31,7 @@ class Settings:
     submission_statement_bot_prefix = "The following submission statement was provided by"
 
     low_effort_flair = ["casual friday", "low effort", "humor", "humour"]
-    removal_reason = ("Your post has been removed for not including a submission statement, "
+    ss_removal_reason = ("Your post has been removed for not including a submission statement, "
                       "meaning post text or a comment on your own post that provides context for the link. "
                       "If you still wish to share your post you must resubmit your link "
                       "accompanied by a submission statement of at least "
@@ -295,7 +295,7 @@ class Janitor:
                 if Settings.report_submission_statement_insufficient_length:
                     post.report_post(reason)
                 else:
-                    post.remove_post(Settings.removal_reason, reason)
+                    post.remove_post(Settings.ss_removal_reason, reason)
         else:
             print("\tPost does NOT have submission statement")
 
@@ -306,7 +306,7 @@ class Janitor:
                 reason = "Post has no submission statement after timeout. Please take a look."
                 post.report_post(reason)
             else:
-                post.remove_post(Settings.removal_reason, "No submission statement")
+                post.remove_post(Settings.ss_removal_reason, "No submission statement")
 
     def handle_posts(self):
         print(f"Checking posts")
