@@ -80,7 +80,7 @@ class Post:
         return False
 
     def submitted_during_casual_hours(self):
-        # 08:00 Friday to 00:00 Saturday
+        # 00:00 Friday to 08:00 Saturday
         if self.created_time.isoweekday() == 5 or \
                 (self.created_time.isoweekday() == 6 and self.created_time.hour < 8):
             return True
