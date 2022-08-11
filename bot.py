@@ -199,39 +199,38 @@ class Janitor:
 
         self.time_unmoderated_last_checked = datetime.utcfromtimestamp(0)
 
+    def get_adjusted_utc_timestamp(self, time_difference_mins):
+        adjusted_utc_dt = datetime.utcnow() - timedelta(minutes=time_difference_mins)
+        return calendar.timegm(adjusted_utc_dt.utctimetuple())
+
     def fetch_new_posts(self):
-        check_posts_after_gmt = datetime.utcnow() - timedelta(minutes=Settings.post_check_threshold_mins)
-        check_posts_after = calendar.timegm(check_posts_after_gmt.utctimetuple())
-        return self.get_submissions(check_posts_after)
+        check_posts_after_utc = self.get_adjusted_utc_timestamp(Settings.post_check_threshold_mins)
 
-    def fetch_stale_unmoderated_posts(self):
-        stale_unmoderated = set()
-        check_posts_before_gmt = datetime.utcnow() - timedelta(minutes=Settings.stale_post_check_thresholds_mins)
-        check_posts_before = calendar.timegm(check_posts_before_gmt.utctimetuple())
-        for post in self.mod.unmoderated():
-            # don't add posts which aren't old enough
-            if post.created_utc > check_posts_before:
-                continue
-            stale_unmoderated.add(Post(post))
-
-        return stale_unmoderated
-
-    def get_submissions(self, check_posts_after):
         submissions = set()
         consecutive_old = 0
         # posts are provided in order of: newly submitted/approved (from automod block)
         for post in self.subreddit.new():
-            if consecutive_old > Settings.consecutive_old_posts:
-                return submissions
-
-            if post.created_utc > check_posts_after:
+            if post.created_utc > check_posts_after_utc:
                 submissions.add(Post(post))
                 consecutive_old = 0
             # old, approved posts can show up in new amongst truly new posts due to reddit "new" ordering
             # continue checking new until consecutive_old_posts are checked, to account for these posts
             else:
                 consecutive_old += 1
+
+            if consecutive_old > Settings.consecutive_old_posts:
+                return submissions
         return submissions
+
+    def fetch_stale_unmoderated_posts(self):
+        check_posts_before_utc = self.get_adjusted_utc_timestamp(Settings.stale_post_check_thresholds_mins)
+
+        stale_unmoderated = set()
+        for post in self.mod.unmoderated():
+            # don't add posts which aren't old enough
+            if post.created_utc < check_posts_before_utc:
+                stale_unmoderated.add(Post(post))
+        return stale_unmoderated
 
     def handle_low_effort(self, post):
         if not post.has_low_effort_flair():
