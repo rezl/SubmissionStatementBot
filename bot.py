@@ -32,13 +32,13 @@ class Settings:
 
     low_effort_flair = ["casual friday", "low effort", "humor", "humour"]
     ss_removal_reason = ("Your post has been removed for not including a submission statement, "
-                      "meaning post text or a comment on your own post that provides context for the link. "
-                      "If you still wish to share your post you must resubmit your link "
-                      "accompanied by a submission statement of at least "
-                      "" + str(submission_statement_minimum_char_length) + "characters. "
-                      "\n\n"
-                      "This is a bot. Replies will not receive responses. "
-                      "Please message the moderators if you feel this was an error.")
+                         "meaning post text or a comment on your own post that provides context for the link. "
+                         "If you still wish to share your post you must resubmit your link "
+                         "accompanied by a submission statement of at least "
+                         "" + str(submission_statement_minimum_char_length) + "characters. "
+                         "\n\n"
+                         "This is a bot. Replies will not receive responses. "
+                         "Please message the moderators if you feel this was an error.")
     casual_hour_removal_reason = ("Your post has been removed because it was flaired as either "
                                   "Casual Friday, Humor, or Low Effort and it was not posted "
                                   "during Casual Friday. "
@@ -363,5 +363,5 @@ def run_once():
 
 
 if __name__ == "__main__":
-    #run_once()
+    # run_once()
     run_forever()
