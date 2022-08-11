@@ -112,7 +112,7 @@ class Post:
                 return True
         return False
 
-    def has_time_expired(self):
+    def has_ss_time_expired(self):
         return self.created_time + Settings.submission_statement_time_limit_minutes < datetime.utcnow()
 
     def validate_submission_statement(self):
@@ -136,9 +136,6 @@ class Post:
         # print("\tsubmission statement identified from multiple comments; validated")
         self.submission_statement = submission_statement
         return True
-
-    def has_ss_time_expired(self):
-        return self.created_time + Settings.submission_statement_time_limit_minutes < datetime.utcnow()
 
     def is_moderator_approved(self):
         return self.submission.approved
@@ -272,7 +269,7 @@ class Janitor:
                 return
 
         # users are given time to post a submission statement
-        if not post.has_time_expired():
+        if not post.has_ss_time_expired():
             print("\tTime has not expired")
             return
 
