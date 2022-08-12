@@ -1,7 +1,36 @@
 # Submission Statement Bot
-This is a Reddit bot for requiring submission statements on link posts. If an OP does not include a statement (comment on their own post) within a certain timeframe, the post is removed. 
+This is a Reddit bot primarily for handling submission statements on link posts:
+- every 5 min, handles new posts submission statement to comment ss, report, or remove post
+- every 5 min, removes new posts if low effort flaired and outside Casual Friday
+- every hour, reports old unmoderated posts
 
-Credit goes to [epicmindwarp](https://github.com/epicmindwarp) for writing this bot. I decided to document the process for getting it up and running on Heroku for free so it can potentially be more available to various moderators. You can currently see this bot running over at [r/collapse](https://reddit.com/r/collapse) as [CollapseBot](https://reddit.com/user/collapsebot).
+New posts = less than 2 hours old\
+Old posts = older than 12 hours 
+
+## Submission statement handling
+After 30 min it will find the submission statement and:
+- if the ss is the post text, does nothing
+- if the submission statement is "valid" (>150 chars), comments this with sticky distinction
+- if the ss is missing, removes it
+- if the ss is <150 chars, reports it
+- if the ss is mod approved but missing ss, reports it
+
+
+### How does it find the submission statement?
+Preferentially takes the post text as submission statement. If that is too short, immediately comments saying so
+
+If there is no post text, or it's too short, at 30 min it will find a submission statement in the OP's top level comments
+- preferentially takes a comment including "ss", "submission" or "statement"
+- otherwise takes the longest comment by OP
+
+### TODO
+- change "every 5 min" to :05, :10, :15, :20, etc
+- change "every hour" to on the hour, 12:00, 1:00, etc
+- post the ss as soon as it's found (not waiting for 30 min)
+- when OP has posted a non-ss comment OR post has been live 15 min, comment saying the post is still missing a ss
+- handle user edits to their ss (currently, you can delete a bots ss for it to repost if user edits, provided the post is still less than 2 hours old)
+
+
 
 # Requirements
 - Python 3.7+
@@ -35,9 +64,23 @@ The main advantage of Heroku is their base plan includes enough hours to host th
 
 5. Click the **Settings** tab to go to your app’s settings page. Make note of  (copy/paste somewhere)  the Heroku git URL, we’ll need it later. This is your Heroku Git URL.
 
-6. Click the **Deploy** tab to load up the Deploy Instructions. Keep this open for later.
+6. Add the required config for your bot to Heroku (added to Heroku to keep sensitive info private)
+    * **Settings** tab > Config Vars > Reveal Config Vars
+    * Add your config individually as a Config Var:
+```
+BOT_USERNAME = BotRedditUsername
+BOT_PASSWORD = BotRedditPassword
+CLIENT_ID = RedditAppClientID
+CLIENT_SECRET = RedditAppSecret
+SUBREDDIT = SomeSubreddit
+```
 
-7. Install Heroku SLI. This will allow us to manage the app via a terminal.
+7. Click the **Deploy** tab to load up the Deploy Instructions. Keep this open for later.
+
+8. Install Heroku SLI. This will allow us to manage the app via a terminal.
+
+
+
 
 
 # Setup Reddit
@@ -79,12 +122,13 @@ The main advantage of Heroku is their base plan includes enough hours to host th
 
 7. Save the file.
 
-8. Open **config.py** and fill in these fields with your info. Make sure not to remove the apostrophes surrounding them.
+8. If not configured in Heroku (#Setup Heroku step 8), Open **config.py** and fill in these fields with your info. Make sure not to remove the apostrophes surrounding them.
 ```
-username = 'BotRedditUsername'
-password = 'BotRedditPassword'
-client_id = 'RedditAppClientID'
-client_secret = 'RedditAppSecret'
+BOT_USERNAME = 'BotRedditUsername'
+BOT_PASSWORD = 'BotRedditPassword'
+CLIENT_ID = 'RedditAppClientID'
+CLIENT_SECRET = 'RedditAppSecret'
+SUBREDDIT = 'SomeSubreddit'
 ```
 9. Save the file.
 
@@ -136,3 +180,4 @@ Heroku limits the number of hours they will run your bot each month. This can be
 
 [RedditBotTest](https://github.com/mconstanza/redditBotHackathon)
 
+Credit goes to [epicmindwarp](https://github.com/epicmindwarp) for writing this bot. I decided to document the process for getting it up and running on Heroku for free so it can potentially be more available to various moderators. You can currently see this bot running over at [r/collapse](https://reddit.com/r/collapse) as [CollapseBot](https://reddit.com/user/collapsebot).
