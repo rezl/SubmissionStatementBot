@@ -24,8 +24,6 @@ If there is no post text, or it's too short, at 30 min it will find a submission
 - otherwise takes the longest comment by OP
 
 ### TODO
-- change "every 5 min" to :05, :10, :15, :20, etc
-- change "every hour" to on the hour, 12:00, 1:00, etc
 - post the ss as soon as it's found (not waiting for 30 min)
 - when OP has posted a non-ss comment OR post has been live 15 min, comment saying the post is still missing a ss
 - handle user edits to their ss (currently, you can delete a bots ss for it to repost if user edits, provided the post is still less than 2 hours old)
