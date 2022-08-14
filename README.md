@@ -33,7 +33,7 @@ If there is no post text, or it's too short, at 30 min it will find a submission
 
 
 # Requirements
-- Python 3.7+
+- Python 3.10+
 - praw 6.3.1+
 
 # How to Host the Bot on Heroku
