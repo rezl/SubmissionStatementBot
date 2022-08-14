@@ -152,6 +152,7 @@ class Post:
             print("\tPost has already been reported")
             return
         self.submission.report(reason)
+        time.sleep(5)
 
     def reply_to_post(self, reason, pin=True, lock=False):
         print(f"\tReplying to post, reason: {reason}")
@@ -162,6 +163,7 @@ class Post:
         comment.mod.distinguish(sticky=pin)
         if lock:
             comment.mod.lock()
+        time.sleep(5)
 
     def remove_post(self, reason, note):
         print(f"\tRemoving post, reason: {reason}")
@@ -171,6 +173,7 @@ class Post:
         self.submission.mod.remove(spam=False, mod_note=note)
         removal_comment = self.submission.reply(reason)
         removal_comment.mod.distinguish(sticky=True)
+        time.sleep(5)
 
 
 class Janitor:
@@ -234,14 +237,13 @@ class Janitor:
 
     def handle_low_effort(self, post):
         if not post.has_low_effort_flair():
-            print("\tPost does not have low effort flair")
             return
 
         if not post.submitted_during_casual_hours():
             post.remove_post(Settings.casual_hour_removal_reason, "low effort flair")
 
     def handle_submission_statement(self, post):
-        # TODO should we post it ahead of time if there"s a match?
+        # TODO should we post it ahead of time if there's a match?
         # TODO should we give a heads up (by commenting this is not done?) a few min ahead of expiration?
         # self posts don"t need a submission statement
         if post.submission.is_self:
