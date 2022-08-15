@@ -100,6 +100,9 @@ class Post:
 
     def has_bot_posted_ss(self, username):
         for comment in self.submission.comments:
+            # deleted comment
+            if isinstance(comment.author, type(None)):
+                continue
             # filter removed comments to allow mods to delete current SS for bot to repost
             if (comment.author.name == username) & (not comment.removed):
                 if Settings.submission_statement_bot_prefix in comment.body:
