@@ -77,7 +77,7 @@ SUBREDDIT = SomeSubreddit
 
 8. Install Heroku SLI. This will allow us to manage the app via a terminal.
 
-
+9. Bot is compatible with heroku stack version 22
 
 
 
@@ -110,17 +110,17 @@ SUBREDDIT = SomeSubreddit
 
 2. Open **bot.py**
 
-3. Change the number in `RGX_SENTENCE_3` to set the minimum number of characters you want to require for the bot to consider a submission statement valid (default is fifty).
+3. Change settings how you'd like:
+* `report_*`: how the bot handles the individual scenarios
+* `*_frequency_mins`: how often the bot will check this scenario (new posts, old posts)
+* `*_threshold_mins`: what posts the bot will review for each scenario (newer than threshold, older than threshold)
+* `submission_statement_minimum_char_length`: minimum number of characters you want to require for the bot to consider a submission statement valid (default is 150)
+* `*_removal_reason`: bot responses when removing for these reasons
+* `low_effort_flair`: flairs which should not be used outside casual friday
 
-4. Change `ENTER_YOUR_SUBREDDIT_NAME` to your sub’s name. 
+5. Save the file.
 
-5. Set the `REMOVAL_REPLY` text to whatever you’d like the bot to comment after removing a post
-
-6. Change the line `if post_time <= dt(2099, 5, 27, 0, 0)`. The section `‘2099, 5, 27,’` is a date (year, month, day). The bot will not scan posts submitted earlier than this date. Setting this is important, since you don’t want it retroactively removing all the posts on your subreddit since the beginning of time. 
-
-7. Save the file.
-
-8. If not configured in Heroku (#Setup Heroku step 8), Open **config.py** and fill in these fields with your info. Make sure not to remove the apostrophes surrounding them.
+6. If not configured in Heroku (#Setup Heroku step 6), Open **config.py** and fill in these fields with your info. Make sure not to remove the apostrophes surrounding them.
 ```
 BOT_USERNAME = 'BotRedditUsername'
 BOT_PASSWORD = 'BotRedditPassword'
@@ -128,8 +128,11 @@ CLIENT_ID = 'RedditAppClientID'
 CLIENT_SECRET = 'RedditAppSecret'
 SUBREDDIT = 'SomeSubreddit'
 ```
+When config is not provided in Heroku, the bot will attempt to use config from this file.
+
 9. Save the file.
 
+10. Optionally run the bot locally - "is_dry_run" can be set to "True" to run the bot without it making any changes (report, remove, reply to posts)
 
 # Upload the Bot
 1. Open **Git Bash** (Windows key, then type `Git Bash`).
