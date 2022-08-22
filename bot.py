@@ -129,13 +129,13 @@ class Post:
             return False
 
         # use "ss" comment, otherwise longest
-        submission_statement = ""
+        submission_statement = ss_candidates[0]
         for candidate in ss_candidates:
             text = candidate.body.lower().strip().split()
             if ("submission" in text and "statement" in text) or ("ss" in text):
                 submission_statement = candidate
                 break
-            if len(candidate.body) > len(submission_statement):
+            if len(candidate.body) > len(submission_statement.body):
                 submission_statement = candidate
         # print("\tsubmission statement identified from multiple comments; validated")
         self.submission_statement = submission_statement
