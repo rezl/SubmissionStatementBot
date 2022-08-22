@@ -23,10 +23,10 @@ class Settings:
     post_check_threshold_mins = 2 * 60
     consecutive_old_posts = 10
     stale_post_check_frequency_mins = 60
-    stale_post_check_thresholds_mins = 12 * 60
+    stale_post_check_threshold_mins = 12 * 60
 
     submission_statement_pin = True
-    submission_statement_time_limit_minutes = timedelta(minutes=30)
+    submission_statement_time_limit_mins = 30
     submission_statement_minimum_char_length = 150
     submission_statement_bot_prefix = "The following submission statement was provided by"
 
@@ -116,7 +116,8 @@ class Post:
         return False
 
     def has_ss_time_expired(self):
-        return self.created_time + Settings.submission_statement_time_limit_minutes < datetime.utcnow()
+        time_allowance = Settings.submission_statement_time_limit_mins
+        return self.created_time + timedelta(minutes=time_allowance) < datetime.utcnow()
 
     def validate_submission_statement(self):
         ss_candidates = []
@@ -229,7 +230,7 @@ class Janitor:
         return submissions
 
     def fetch_stale_unmoderated_posts(self):
-        check_posts_before_utc = self.get_adjusted_utc_timestamp(Settings.stale_post_check_thresholds_mins)
+        check_posts_before_utc = self.get_adjusted_utc_timestamp(Settings.stale_post_check_threshold_mins)
 
         stale_unmoderated = set()
         for post in self.mod.unmoderated():
@@ -335,7 +336,7 @@ class Janitor:
         for post in stale_unmoderated_posts:
             print(f"Checking unmoderated post: {post.submission.title}")
             if Settings.report_stale_unmoderated_posts:
-                reason = "This post is over " + str(round(Settings.stale_post_check_thresholds_mins / 60, 2)) + \
+                reason = "This post is over " + str(round(Settings.stale_post_check_threshold_mins / 60, 2)) + \
                          "hours old and has not been moderated. Please take a look!"
                 post.report_post(reason)
             else:
