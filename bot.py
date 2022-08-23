@@ -213,12 +213,12 @@ class Janitor:
     def fetch_new_posts(self):
         check_posts_after_utc = self.get_adjusted_utc_timestamp(Settings.post_check_threshold_mins)
 
-        submissions = set()
+        submissions = list()
         consecutive_old = 0
         # posts are provided in order of: newly submitted/approved (from automod block)
         for post in self.subreddit.new():
             if post.created_utc > check_posts_after_utc:
-                submissions.add(Post(post))
+                submissions.append(Post(post))
                 consecutive_old = 0
             # old, approved posts can show up in new amongst truly new posts due to reddit "new" ordering
             # continue checking new until consecutive_old_posts are checked, to account for these posts
@@ -232,11 +232,11 @@ class Janitor:
     def fetch_stale_unmoderated_posts(self):
         check_posts_before_utc = self.get_adjusted_utc_timestamp(Settings.stale_post_check_threshold_mins)
 
-        stale_unmoderated = set()
+        stale_unmoderated = list()
         for post in self.mod.unmoderated():
             # don't add posts which aren't old enough
             if post.created_utc < check_posts_before_utc:
-                stale_unmoderated.add(Post(post))
+                stale_unmoderated.append(Post(post))
         return stale_unmoderated
 
     def handle_low_effort(self, post):
@@ -311,8 +311,8 @@ class Janitor:
                 post.remove_post(Settings.ss_removal_reason, "No submission statement")
 
     def handle_posts(self):
-        print(f"Checking posts")
         posts = self.fetch_new_posts()
+        print("Checking " + str(len(posts)) + " posts")
         for post in posts:
             print(f"Checking post: {post.submission.title}\n\t{post.submission.permalink}")
 
