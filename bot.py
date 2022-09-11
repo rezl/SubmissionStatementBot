@@ -6,6 +6,7 @@
 import calendar
 import config
 from datetime import datetime, timedelta
+from enum import Enum
 import os
 import praw
 import time
@@ -54,6 +55,11 @@ class Settings:
                                   "\n\n"
                                   "This is a bot. Replies will not receive responses. "
                                   "Please message the moderators if you feel this was an error.")
+    submission_statement_rule_description = "Submission statements must clearly explain why the linked content is" \
+                                            " collapse-related. They should contain a summary or description of the" \
+                                            " content and must be at least 150 characters in length. They must be" \
+                                            " original and not overly composed of quoted text from the source. If a " \
+                                            "statement is not added within thirty minutes of posting it will be removed"
 
     @staticmethod
     def submission_statement_pin_text(ss):
@@ -64,9 +70,8 @@ class Settings:
 
 class Post:
     def __init__(self, submission):
-        self.created_time = datetime.utcfromtimestamp(submission.created_utc)
         self.submission = submission
-        self.submission_statement = None
+        self.created_time = datetime.utcfromtimestamp(submission.created_utc)
 
     def __str__(self):
         return f"{self.submission.permalink} | {self.submission.title}"
@@ -98,35 +103,27 @@ class Post:
                         return True
         return False
 
-    def has_bot_posted_ss(self, username):
+    def contains_comment(self, username, text):
         for comment in self.submission.comments:
             # deleted comment
-            if isinstance(comment.author, type(None)):
+            if isinstance(comment.author, type(None)) or comment.removed:
                 continue
-            # filter removed comments to allow mods to delete current SS for bot to repost
-            if (comment.author.name == username) & (not comment.removed):
-                if Settings.submission_statement_bot_prefix in comment.body:
+            if comment.author.name == username:
+                if text in comment.body:
                     return True
         return False
 
-    def contains_comment(self, text):
-        for comment in self.submission.comments:
-            if text in comment.body:
-                return True
-        return False
+    def is_post_old(self, time_mins):
+        return self.created_time + timedelta(minutes=time_mins) < datetime.utcnow()
 
-    def has_ss_time_expired(self):
-        time_allowance = Settings.submission_statement_time_limit_mins
-        return self.created_time + timedelta(minutes=time_allowance) < datetime.utcnow()
-
-    def validate_submission_statement(self):
+    def find_submission_statement(self):
         ss_candidates = []
         for comment in self.submission.comments:
             if comment.is_submitter:
                 ss_candidates.append(comment)
 
         if len(ss_candidates) == 0:
-            return False
+            return None
 
         # use "ss" comment, otherwise longest
         submission_statement = ss_candidates[0]
@@ -137,9 +134,7 @@ class Post:
                 break
             if len(candidate.body) > len(submission_statement.body):
                 submission_statement = candidate
-        # print("\tsubmission statement identified from multiple comments; validated")
-        self.submission_statement = submission_statement
-        return True
+        return submission_statement
 
     def is_moderator_approved(self):
         return self.submission.approved
@@ -178,6 +173,12 @@ class Post:
         removal_comment = self.submission.reply(reason)
         removal_comment.mod.distinguish(sticky=True)
         time.sleep(5)
+
+
+class SubmissionStatementState(str, Enum):
+    MISSING = "MISSING"
+    TOO_SHORT = "TOO_SHORT"
+    VALID = "VALID"
 
 
 class Janitor:
@@ -240,7 +241,17 @@ class Janitor:
                 stale_unmoderated.append(Post(post))
         return stale_unmoderated
 
-    def handle_low_effort(self, post):
+    @staticmethod
+    def validate_submission_statement(ss):
+        if ss is None:
+            return SubmissionStatementState.MISSING
+        elif len(ss.body) < Settings.submission_statement_minimum_char_length:
+            return SubmissionStatementState.TOO_SHORT
+        else:
+            return SubmissionStatementState.VALID
+
+    @staticmethod
+    def handle_low_effort(post):
         if not post.has_low_effort_flair():
             return
 
@@ -255,7 +266,7 @@ class Janitor:
             print("\tSelf post does not need a SS")
             return
 
-        if post.has_bot_posted_ss(self.username):
+        if post.contains_comment(self.username, Settings.submission_statement_bot_prefix):
             print("\tBot has already posted SS")
             return
 
@@ -267,41 +278,50 @@ class Janitor:
                        "directly in your post, which is fine, but it is too short (min 150 chars). \n\n" \
                        "You can either edit your post's text to >150 chars, or include a comment-based ss instead " \
                        "(which I would post shortly, if it meets submission statement requirements).\n" \
+                       "Please message the moderators if you feel this was an error. " \
                        "Responses to this comment are not monitored."
-                if not post.contains_comment(text):
+                if not post.contains_comment(self.username, text):
                     post.reply_to_post(text, pin=False, lock=True)
             else:
                 print("\tPost has valid post-based submission statement, not doing anything")
                 return
 
-        # users are given time to post a submission statement
-        if not post.has_ss_time_expired():
+        timeout_mins = Settings.submission_statement_time_limit_mins
+        reminder_timeout_mins = timeout_mins / 2
+
+        if not post.is_post_old(reminder_timeout_mins):
             print("\tTime has not expired")
             return
 
+        submission_statement = post.find_submission_statement()
+        submission_statement_state = Janitor.validate_submission_statement(submission_statement)
+
+        # One last reminder to post a submission statement...
+        if post.is_post_old(reminder_timeout_mins) and not post.is_post_old(timeout_mins):
+            reminder_identifier = "As a final reminder, your post must include a valid submission statement"
+
+            if submission_statement_state == SubmissionStatementState.MISSING or \
+                    submission_statement_state == SubmissionStatementState.TOO_SHORT:
+                if not post.contains_comment(self.username, reminder_identifier):
+                    reminder_detail = "Your post is missing a submission statement." \
+                        if submission_statement_state == SubmissionStatementState.MISSING \
+                        else f"The submission statement I identified is too short ({len(submission_statement.body)}" \
+                             f" chars):\n> {submission_statement.body} \n\n" \
+                             f"https://old.reddit.com{submission_statement.permalink}"
+                    reminder_response = f"{reminder_identifier} within {timeout_mins} min. {reminder_detail}\n\n" \
+                                        f"{Settings.submission_statement_rule_description}.\n\n"\
+                                        "Please message the moderators if you feel this was an error. " \
+                                        "Responses to this comment are not monitored."
+                    post.reply_to_post(reminder_response, pin=False, lock=True)
+
+        # users are given time to post a submission statement
+        if not post.is_post_old(timeout_mins):
+            print("\tTime has not expired")
+            return
         print("\tTime has expired")
-        # TODO probably should verify ss length in this validate method
-        if post.validate_submission_statement():
-            if not post.submission_statement:
-                reason = "ERROR: no submission statement found, please check and report to devs"
-                post.report_post(reason)
-                print(reason)
-                raise Exception("invalid state: no submission statement found, but reported as valid")
-            print("\tPost has submission statement")
-            if Settings.submission_statement_pin:
-                post.reply_to_post(Settings.submission_statement_pin_text(post.submission_statement),
-                                   pin=True, lock=True)
 
-            # verify submission statements have at least required length, report if necessary
-            if len(post.submission_statement.body) < Settings.submission_statement_minimum_char_length:
-                reason = "Submission statement is too short"
-                if Settings.report_submission_statement_insufficient_length:
-                    post.report_post(reason)
-                else:
-                    post.remove_post(Settings.ss_removal_reason, reason)
-        else:
+        if submission_statement_state == SubmissionStatementState.MISSING:
             print("\tPost does NOT have submission statement")
-
             if post.is_moderator_approved():
                 reason = "Moderator approved post, but there is no SS. Please double check."
                 post.report_post(reason)
@@ -310,6 +330,23 @@ class Janitor:
                 post.report_post(reason)
             else:
                 post.remove_post(Settings.ss_removal_reason, "No submission statement")
+        elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
+            print("\tPost has too short submission statement")
+            if Settings.submission_statement_pin:
+                post.reply_to_post(Settings.submission_statement_pin_text(submission_statement),
+                                   pin=True, lock=True)
+            reason = "Submission statement is too short"
+            if Settings.report_submission_statement_insufficient_length:
+                post.report_post(reason)
+            else:
+                post.remove_post(Settings.ss_removal_reason, reason)
+        elif submission_statement_state == SubmissionStatementState.VALID:
+            print("\tPost has valid submission statement")
+            if Settings.submission_statement_pin:
+                post.reply_to_post(Settings.submission_statement_pin_text(submission_statement),
+                                   pin=True, lock=True)
+        else:
+            print("\tERROR: unsupported submission_statement_state")
 
     def handle_posts(self):
         posts = self.fetch_new_posts()
