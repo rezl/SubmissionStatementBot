@@ -21,7 +21,7 @@ class Settings:
 
     post_check_frequency_mins = 5
     post_check_threshold_mins = 2 * 60
-    consecutive_old_posts = 10
+    consecutive_old_posts = 5
     stale_post_check_frequency_mins = 60
     stale_post_check_threshold_mins = 12 * 60
 
@@ -223,6 +223,7 @@ class Janitor:
             # old, approved posts can show up in new amongst truly new posts due to reddit "new" ordering
             # continue checking new until consecutive_old_posts are checked, to account for these posts
             else:
+                submissions.append(Post(post))
                 consecutive_old += 1
 
             if consecutive_old > Settings.consecutive_old_posts:
