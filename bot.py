@@ -336,7 +336,10 @@ class Janitor:
                 post.reply_to_post(Settings.submission_statement_pin_text(submission_statement),
                                    pin=True, lock=True)
             reason = "Submission statement is too short"
-            if Settings.report_submission_statement_insufficient_length:
+            if post.is_moderator_approved():
+                reason = "Moderator approved post, but SS is too short. Please double check."
+                post.report_post(reason)
+            elif Settings.report_submission_statement_insufficient_length:
                 post.report_post(reason)
             else:
                 post.remove_post(Settings.ss_removal_reason, reason)
