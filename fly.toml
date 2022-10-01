@@ -1,0 +1,8 @@
+# fly.toml file generated for weathered-tree-5114 on 2022-09-10T23:57:55+01:00
+
+app = "collapsebot"
+kill_signal = "SIGINT"
+kill_timeout = 5
+processes = []
+
+[env]
