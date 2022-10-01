@@ -41,6 +41,7 @@ If there is no post text, or it's too short, at 30 min it will find a submission
 3. [Assuming you're reading this on the repo page](https://github.com/rezl/SubmissionStatementBot), select ‘fork’ to create a copy of it to your Github account. 
 
 4. From your new repo, select **Code** and then under **Clone** copy the HTTPS URL (e.g. https://github.com/rezl/SubmissionStatementBot.git) to download a local copy
+
 ![img.png](img.png)
 
 5. Navigate to a folder you want a local copy of the repo to live, and clone the Github repo to your local PC:
@@ -177,7 +178,7 @@ SUBREDDIT=SomeSubreddit
    1. You can prevent automatic deployments by removing this auth token from github, or removing the fly.yml file (.github/workflows/fly.yml)
    2. You can cancel individual deployments whilst it's running:
       1. Navigate to Actions Page (https://github.com/<username>/<reponame>/actions), which lists all previous and ongoing deployments
-      2. Click on the current deployment > Cancel Deployment
+      2. Click on the current deployment (yellow circle) > Cancel Workflow 
 
 
 # Other related guides:
