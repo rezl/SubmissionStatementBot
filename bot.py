@@ -103,14 +103,13 @@ class Post:
                         return True
         return False
 
-    def contains_comment(self, username, text):
+    def contains_comment(self, text):
         for comment in self.submission.comments:
             # deleted comment
             if isinstance(comment.author, type(None)) or comment.removed:
                 continue
-            if comment.author.name == username:
-                if text in comment.body:
-                    return True
+            if text in comment.body:
+                return True
         return False
 
     def is_post_old(self, time_mins):
@@ -201,7 +200,6 @@ class Janitor:
             username=bot_username,
             password=bot_password
         )
-        self.username = bot_username
         self.subreddit = self.reddit.subreddit(subreddit_name)
         self.mod = self.subreddit.mod
 
@@ -266,7 +264,7 @@ class Janitor:
             print("\tSelf post does not need a SS")
             return
 
-        if post.contains_comment(self.username, Settings.submission_statement_bot_prefix):
+        if post.contains_comment(Settings.submission_statement_bot_prefix):
             print("\tBot has already posted SS")
             return
 
@@ -280,7 +278,7 @@ class Janitor:
                        "(which I would post shortly, if it meets submission statement requirements).\n" \
                        "Please message the moderators if you feel this was an error. " \
                        "Responses to this comment are not monitored."
-                if not post.contains_comment(self.username, text):
+                if not post.contains_comment(text):
                     post.reply_to_post(text, pin=False, lock=True)
             else:
                 print("\tPost has valid post-based submission statement, not doing anything")
@@ -302,7 +300,7 @@ class Janitor:
 
             if submission_statement_state == SubmissionStatementState.MISSING or \
                     submission_statement_state == SubmissionStatementState.TOO_SHORT:
-                if not post.contains_comment(self.username, reminder_identifier):
+                if not post.contains_comment(reminder_identifier):
                     reminder_detail = "Your post is missing a submission statement." \
                         if submission_statement_state == SubmissionStatementState.MISSING \
                         else f"The submission statement I identified is too short ({len(submission_statement.body)}" \
