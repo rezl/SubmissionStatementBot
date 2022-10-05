@@ -187,11 +187,20 @@ class Janitor:
         client_secret = os.environ["CLIENT_SECRET"] if "CLIENT_SECRET" in os.environ else config.CLIENT_SECRET
         bot_username = os.environ["BOT_USERNAME"] if "BOT_USERNAME" in os.environ else config.BOT_USERNAME
         bot_password = os.environ["BOT_PASSWORD"] if "BOT_PASSWORD" in os.environ else config.BOT_PASSWORD
-        subreddit_name = os.environ["SUBREDDIT"] if "SUBREDDIT" in os.environ else config.SUBREDDIT
+
+        if hasattr(config, "SUBREDDITS"):
+            subreddits_config = os.environ["SUBREDDITS"] if "SUBREDDITS" in os.environ else config.SUBREDDITS
+        else:
+            subreddits_config = os.environ["SUBREDDIT"] if "SUBREDDIT" in os.environ else config.SUBREDDIT
+
+        subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(",")]
+
         print("CONFIG: client_id=" + client_id + " client_secret=" + "*********" +
               " bot_username=" + bot_username + " bot_password=" + "*********" +
-              " subreddit_name=" + subreddit_name)
+              " subreddit_names=" + str(subreddit_names))
 
+        self.subreddit_names = subreddit_names
+        self.time_unmoderated_last_checked = datetime.utcfromtimestamp(0)
         self.reddit = praw.Reddit(
             client_id=client_id,
             client_secret=client_secret,
@@ -200,22 +209,18 @@ class Janitor:
             username=bot_username,
             password=bot_password
         )
-        self.subreddit = self.reddit.subreddit(subreddit_name)
-        self.mod = self.subreddit.mod
-
-        self.time_unmoderated_last_checked = datetime.utcfromtimestamp(0)
 
     def get_adjusted_utc_timestamp(self, time_difference_mins):
         adjusted_utc_dt = datetime.utcnow() - timedelta(minutes=time_difference_mins)
         return calendar.timegm(adjusted_utc_dt.utctimetuple())
 
-    def fetch_new_posts(self):
+    def fetch_new_posts(self, subreddit):
         check_posts_after_utc = self.get_adjusted_utc_timestamp(Settings.post_check_threshold_mins)
 
         submissions = list()
         consecutive_old = 0
         # posts are provided in order of: newly submitted/approved (from automod block)
-        for post in self.subreddit.new():
+        for post in subreddit.new():
             if post.created_utc > check_posts_after_utc:
                 submissions.append(Post(post))
                 consecutive_old = 0
@@ -229,11 +234,11 @@ class Janitor:
                 return submissions
         return submissions
 
-    def fetch_stale_unmoderated_posts(self):
+    def fetch_stale_unmoderated_posts(self, subreddit_mod):
         check_posts_before_utc = self.get_adjusted_utc_timestamp(Settings.stale_post_check_threshold_mins)
 
         stale_unmoderated = list()
-        for post in self.mod.unmoderated():
+        for post in subreddit_mod.unmoderated():
             # don't add posts which aren't old enough
             if post.created_utc < check_posts_before_utc:
                 stale_unmoderated.append(Post(post))
@@ -349,8 +354,8 @@ class Janitor:
         else:
             print("\tERROR: unsupported submission_statement_state")
 
-    def handle_posts(self):
-        posts = self.fetch_new_posts()
+    def handle_posts(self, subreddit):
+        posts = self.fetch_new_posts(subreddit)
         print("Checking " + str(len(posts)) + " posts")
         for post in posts:
             print(f"Checking post: {post.submission.title}\n\t{post.submission.permalink}")
@@ -365,12 +370,12 @@ class Janitor:
             except Exception as e:
                 print(e)
 
-    def handle_stale_unmoderated_posts(self):
+    def handle_stale_unmoderated_posts(self, subreddit_mod):
         now = datetime.utcnow()
         if self.time_unmoderated_last_checked > now - timedelta(minutes=Settings.stale_post_check_frequency_mins):
             return
 
-        stale_unmoderated_posts = self.fetch_stale_unmoderated_posts()
+        stale_unmoderated_posts = self.fetch_stale_unmoderated_posts(subreddit_mod)
         print("__UNMODERATED__")
         for post in stale_unmoderated_posts:
             print(f"Checking unmoderated post: {post.submission.title}")
@@ -388,9 +393,15 @@ def run_forever():
         try:
             janitor = Janitor()
             while True:
-                print("____________________")
-                janitor.handle_posts()
-                janitor.handle_stale_unmoderated_posts()
+                for subreddit_name in janitor.subreddit_names:
+                    try:
+                        print("____________________")
+                        print("Checking Subreddit: " + subreddit_name)
+                        subreddit = janitor.reddit.subreddit(subreddit_name)
+                        janitor.handle_posts(subreddit)
+                        janitor.handle_stale_unmoderated_posts(subreddit.mod)
+                    except Exception as e:
+                        print(e)
                 time.sleep(Settings.post_check_frequency_mins * 60)
         except Exception as e:
             print(e)
@@ -399,8 +410,10 @@ def run_forever():
 
 def run_once():
     janitor = Janitor()
-    janitor.handle_posts()
-    janitor.handle_stale_unmoderated_posts()
+    for subreddit_name in janitor.subreddit_names:
+        subreddit = janitor.reddit.subreddit(subreddit_name)
+        janitor.handle_posts(subreddit)
+        janitor.handle_stale_unmoderated_posts(subreddit.mod)
 
 
 if __name__ == "__main__":
