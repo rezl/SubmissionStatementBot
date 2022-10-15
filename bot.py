@@ -30,6 +30,8 @@ class Settings:
     submission_statement_time_limit_mins = 30
     submission_statement_minimum_char_length = 150
     submission_statement_bot_prefix = "The following submission statement was provided by"
+    submission_statement_on_topic_reminder = False
+    submission_statement_on_topic_keywords = []
 
     low_effort_flair = ["casual friday", "low effort", "humor", "humour"]
     ss_removal_reason = ("Your post has been removed for not including a submission statement, "
@@ -61,11 +63,15 @@ class Settings:
                                             " original and not overly composed of quoted text from the source. If a " \
                                             "statement is not added within thirty minutes of posting it will be removed"
 
-    @staticmethod
-    def submission_statement_pin_text(ss):
-        header = f"{Settings.submission_statement_bot_prefix} /u/{ss.author}:\n\n---\n\n"
+    def submission_statement_pin_text(self, ss):
+        header = f"{self.submission_statement_bot_prefix} /u/{ss.author}:\n\n---\n\n"
         footer = f"\n\n---\n\n Please reply to OP's comment here: https://old.reddit.com{ss.permalink}"
         return header + ss.body + footer
+
+
+class CollapseSettings(Settings):
+    submission_statement_on_topic_reminder = True
+    submission_statement_on_topic_keywords = ["collapse"]
 
 
 class Post:
@@ -76,11 +82,11 @@ class Post:
     def __str__(self):
         return f"{self.submission.permalink} | {self.submission.title}"
 
-    def has_low_effort_flair(self):
+    def has_low_effort_flair(self, settings):
         flair = self.submission.link_flair_text
         if not flair:
             return False
-        if flair.lower() in Settings.low_effort_flair:
+        if flair.lower() in settings.low_effort_flair:
             return True
         return False
 
@@ -141,9 +147,9 @@ class Post:
     def is_removed(self):
         return self.submission.removed
 
-    def report_post(self, reason):
+    def report_post(self, settings, reason):
         print(f"\tReporting post, reason: {reason}")
-        if Settings.is_dry_run:
+        if settings.is_dry_run:
             print("\tDRY RUN!!!")
             return
         if self.contains_report(reason, True):
@@ -152,9 +158,9 @@ class Post:
         self.submission.report(reason)
         time.sleep(5)
 
-    def reply_to_post(self, reason, pin=True, lock=False):
+    def reply_to_post(self, settings, reason, pin=True, lock=False):
         print(f"\tReplying to post, reason: {reason}")
-        if Settings.is_dry_run:
+        if settings.is_dry_run:
             print("\tDRY RUN!!!")
             return
         comment = self.submission.reply(reason)
@@ -163,9 +169,9 @@ class Post:
             comment.mod.lock()
         time.sleep(5)
 
-    def remove_post(self, reason, note):
+    def remove_post(self, settings, reason, note):
         print(f"\tRemoving post, reason: {reason}")
-        if Settings.is_dry_run:
+        if settings.is_dry_run:
             print("\tDRY RUN!!!")
             return
         self.submission.mod.remove(spam=False, mod_note=note)
@@ -214,8 +220,8 @@ class Janitor:
         adjusted_utc_dt = datetime.utcnow() - timedelta(minutes=time_difference_mins)
         return calendar.timegm(adjusted_utc_dt.utctimetuple())
 
-    def fetch_new_posts(self, subreddit):
-        check_posts_after_utc = self.get_adjusted_utc_timestamp(Settings.post_check_threshold_mins)
+    def fetch_new_posts(self, settings, subreddit):
+        check_posts_after_utc = self.get_adjusted_utc_timestamp(settings.post_check_threshold_mins)
 
         submissions = list()
         consecutive_old = 0
@@ -230,12 +236,12 @@ class Janitor:
                 submissions.append(Post(post))
                 consecutive_old += 1
 
-            if consecutive_old > Settings.consecutive_old_posts:
+            if consecutive_old > settings.consecutive_old_posts:
                 return submissions
         return submissions
 
-    def fetch_stale_unmoderated_posts(self, subreddit_mod):
-        check_posts_before_utc = self.get_adjusted_utc_timestamp(Settings.stale_post_check_threshold_mins)
+    def fetch_stale_unmoderated_posts(self, settings, subreddit_mod):
+        check_posts_before_utc = self.get_adjusted_utc_timestamp(settings.stale_post_check_threshold_mins)
 
         stale_unmoderated = list()
         for post in subreddit_mod.unmoderated():
@@ -245,23 +251,23 @@ class Janitor:
         return stale_unmoderated
 
     @staticmethod
-    def validate_submission_statement(ss):
+    def validate_submission_statement(settings, ss):
         if ss is None:
             return SubmissionStatementState.MISSING
-        elif len(ss.body) < Settings.submission_statement_minimum_char_length:
+        elif len(ss.body) < settings.submission_statement_minimum_char_length:
             return SubmissionStatementState.TOO_SHORT
         else:
             return SubmissionStatementState.VALID
 
     @staticmethod
-    def handle_low_effort(post):
-        if not post.has_low_effort_flair():
+    def handle_low_effort(settings, post):
+        if not post.has_low_effort_flair(settings):
             return
 
         if not post.submitted_during_casual_hours():
-            post.remove_post(Settings.casual_hour_removal_reason, "low effort flair")
+            post.remove_post(settings, settings.casual_hour_removal_reason, "low effort flair")
 
-    def handle_submission_statement(self, post):
+    def handle_submission_statement(self, settings, post):
         # TODO should we post it ahead of time if there's a match?
         # TODO should we give a heads up (by commenting this is not done?) a few min ahead of expiration?
         # self posts don"t need a submission statement
@@ -269,13 +275,13 @@ class Janitor:
             print("\tSelf post does not need a SS")
             return
 
-        if post.contains_comment(Settings.submission_statement_bot_prefix):
+        if post.contains_comment(settings.submission_statement_bot_prefix):
             print("\tBot has already posted SS")
             return
 
         # use link post's text if valid
         if post.submission.selftext != '':
-            if len(post.submission.selftext) < Settings.submission_statement_minimum_char_length:
+            if len(post.submission.selftext) < settings.submission_statement_minimum_char_length:
                 print("\tPost has short post-based submission statement")
                 text = "Hi, thanks for your contribution. It looks like you've included your submission statement " \
                        "directly in your post, which is fine, but it is too short (min 150 chars). \n\n" \
@@ -284,12 +290,12 @@ class Janitor:
                        "Please message the moderators if you feel this was an error. " \
                        "Responses to this comment are not monitored."
                 if not post.contains_comment(text):
-                    post.reply_to_post(text, pin=False, lock=True)
+                    post.reply_to_post(settings, text, pin=False, lock=True)
             else:
                 print("\tPost has valid post-based submission statement, not doing anything")
                 return
 
-        timeout_mins = Settings.submission_statement_time_limit_mins
+        timeout_mins = settings.submission_statement_time_limit_mins
         reminder_timeout_mins = timeout_mins / 2
 
         if not post.is_post_old(reminder_timeout_mins):
@@ -297,7 +303,7 @@ class Janitor:
             return
 
         submission_statement = post.find_submission_statement()
-        submission_statement_state = Janitor.validate_submission_statement(submission_statement)
+        submission_statement_state = Janitor.validate_submission_statement(settings, submission_statement)
 
         # One last reminder to post a submission statement...
         if post.is_post_old(reminder_timeout_mins) and not post.is_post_old(timeout_mins):
@@ -312,10 +318,10 @@ class Janitor:
                              f" chars):\n> {submission_statement.body} \n\n" \
                              f"https://old.reddit.com{submission_statement.permalink}"
                     reminder_response = f"{reminder_identifier} within {timeout_mins} min. {reminder_detail}\n\n" \
-                                        f"{Settings.submission_statement_rule_description}.\n\n"\
+                                        f"{settings.submission_statement_rule_description}.\n\n" \
                                         "Please message the moderators if you feel this was an error. " \
                                         "Responses to this comment are not monitored."
-                    post.reply_to_post(reminder_response, pin=False, lock=True)
+                    post.reply_to_post(settings, reminder_response, pin=False, lock=True)
 
         # users are given time to post a submission statement
         if not post.is_post_old(timeout_mins):
@@ -327,35 +333,35 @@ class Janitor:
             print("\tPost does NOT have submission statement")
             if post.is_moderator_approved():
                 reason = "Moderator approved post, but there is no SS. Please double check."
-                post.report_post(reason)
-            elif Settings.report_submission_statement_timeout:
+                post.report_post(settings, reason)
+            elif settings.report_submission_statement_timeout:
                 reason = "Post has no submission statement after timeout. Please take a look."
-                post.report_post(reason)
+                post.report_post(settings, reason)
             else:
-                post.remove_post(Settings.ss_removal_reason, "No submission statement")
+                post.remove_post(settings, settings.ss_removal_reason, "No submission statement")
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
             print("\tPost has too short submission statement")
-            if Settings.submission_statement_pin:
-                post.reply_to_post(Settings.submission_statement_pin_text(submission_statement),
+            if settings.submission_statement_pin:
+                post.reply_to_post(settings, settings.submission_statement_pin_text(submission_statement),
                                    pin=True, lock=True)
             reason = "Submission statement is too short"
             if post.is_moderator_approved():
                 reason = "Moderator approved post, but SS is too short. Please double check."
-                post.report_post(reason)
-            elif Settings.report_submission_statement_insufficient_length:
-                post.report_post(reason)
+                post.report_post(settings, reason)
+            elif settings.report_submission_statement_insufficient_length:
+                post.report_post(settings, reason)
             else:
-                post.remove_post(Settings.ss_removal_reason, reason)
+                post.remove_post(settings, settings.ss_removal_reason, reason)
         elif submission_statement_state == SubmissionStatementState.VALID:
             print("\tPost has valid submission statement")
-            if Settings.submission_statement_pin:
-                post.reply_to_post(Settings.submission_statement_pin_text(submission_statement),
+            if settings.submission_statement_pin:
+                post.reply_to_post(settings, settings.submission_statement_pin_text(submission_statement),
                                    pin=True, lock=True)
         else:
             print("\tERROR: unsupported submission_statement_state")
 
-    def handle_posts(self, subreddit):
-        posts = self.fetch_new_posts(subreddit)
+    def handle_posts(self, settings, subreddit):
+        posts = self.fetch_new_posts(settings, subreddit)
         print("Checking " + str(len(posts)) + " posts")
         for post in posts:
             print(f"Checking post: {post.submission.title}\n\t{post.submission.permalink}")
@@ -365,27 +371,37 @@ class Janitor:
                 continue
 
             try:
-                self.handle_low_effort(post)
-                self.handle_submission_statement(post)
+                self.handle_low_effort(settings, post)
+                self.handle_submission_statement(settings, post)
             except Exception as e:
                 print(e)
 
-    def handle_stale_unmoderated_posts(self, subreddit_mod):
+    def handle_stale_unmoderated_posts(self, settings, subreddit_mod):
         now = datetime.utcnow()
-        if self.time_unmoderated_last_checked > now - timedelta(minutes=Settings.stale_post_check_frequency_mins):
+        if self.time_unmoderated_last_checked > now - timedelta(minutes=settings.stale_post_check_frequency_mins):
             return
 
-        stale_unmoderated_posts = self.fetch_stale_unmoderated_posts(subreddit_mod)
+        stale_unmoderated_posts = self.fetch_stale_unmoderated_posts(settings, subreddit_mod)
         print("__UNMODERATED__")
         for post in stale_unmoderated_posts:
             print(f"Checking unmoderated post: {post.submission.title}")
-            if Settings.report_stale_unmoderated_posts:
-                reason = "This post is over " + str(round(Settings.stale_post_check_threshold_mins / 60, 2)) + \
+            if settings.report_stale_unmoderated_posts:
+                reason = "This post is over " + str(round(settings.stale_post_check_threshold_mins / 60, 2)) + \
                          "hours old and has not been moderated. Please take a look!"
-                post.report_post(reason)
+                post.report_post(settings, reason)
             else:
                 print(f"Not reporting stale unmoderated post: {post.submission.title}\n\t{post.submission.permalink}")
         self.time_unmoderated_last_checked = now
+
+
+def get_subreddit_settings(subreddit_name):
+    # use <SubredditName>Settings if exists, default to Settings
+    settings_name = subreddit_name + "Settings"
+    try:
+        constructor = globals()[settings_name]
+        return constructor()
+    except KeyError:
+        return Settings()
 
 
 def run_forever():
@@ -395,11 +411,14 @@ def run_forever():
             while True:
                 for subreddit_name in janitor.subreddit_names:
                     try:
+                        settings = get_subreddit_settings(subreddit_name)
                         print("____________________")
-                        print("Checking Subreddit: " + subreddit_name)
+                        print("Checking Subreddit: " + subreddit_name + " with ["
+                              + settings.__class__.__name__ + "] settings")
+
                         subreddit = janitor.reddit.subreddit(subreddit_name)
-                        janitor.handle_posts(subreddit)
-                        janitor.handle_stale_unmoderated_posts(subreddit.mod)
+                        janitor.handle_posts(settings, subreddit)
+                        janitor.handle_stale_unmoderated_posts(settings, subreddit.mod)
                     except Exception as e:
                         print(e)
                 time.sleep(Settings.post_check_frequency_mins * 60)
@@ -411,9 +430,10 @@ def run_forever():
 def run_once():
     janitor = Janitor()
     for subreddit_name in janitor.subreddit_names:
+        settings = get_subreddit_settings(subreddit_name)
         subreddit = janitor.reddit.subreddit(subreddit_name)
-        janitor.handle_posts(subreddit)
-        janitor.handle_stale_unmoderated_posts(subreddit.mod)
+        janitor.handle_posts(settings, subreddit)
+        janitor.handle_stale_unmoderated_posts(settings, subreddit.mod)
 
 
 if __name__ == "__main__":
