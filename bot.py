@@ -30,6 +30,7 @@ class Settings:
     submission_statement_time_limit_mins = 30
     submission_statement_minimum_char_length = 150
     submission_statement_bot_prefix = "The following submission statement was provided by"
+    submission_statement_final_reminder = False
     submission_statement_on_topic_reminder = False
     submission_statement_on_topic_keywords = []
 
@@ -70,6 +71,7 @@ class Settings:
 
 
 class CollapseSettings(Settings):
+    submission_statement_final_reminder = True
     submission_statement_on_topic_reminder = True
     submission_statement_on_topic_keywords = ["collapse"]
 
@@ -184,6 +186,32 @@ class SubmissionStatementState(str, Enum):
     MISSING = "MISSING"
     TOO_SHORT = "TOO_SHORT"
     VALID = "VALID"
+
+
+def ss_final_reminder(settings, post, submission_statement, submission_statement_state,
+                      reminder_timeout_mins, timeout_mins):
+    if not settings.submission_statement_final_reminder:
+        return
+    # only applies to posts that are between the time to remind and time to post
+    if not post.is_post_old(reminder_timeout_mins) or post.is_post_old(timeout_mins):
+        return
+    if submission_statement_state == SubmissionStatementState.VALID:
+        return
+    reminder_identifier = "As a final reminder, your post must include a valid submission statement"
+    if post.contains_comment(reminder_identifier):
+        return
+
+    # one final reminder to post an ss
+    reminder_detail = "Your post is missing a submission statement." \
+        if submission_statement_state == SubmissionStatementState.MISSING \
+        else f"The submission statement I identified is too short ({len(submission_statement.body)}" \
+             f" chars):\n> {submission_statement.body} \n\n" \
+             f"https://old.reddit.com{submission_statement.permalink}"
+    reminder_response = f"{reminder_identifier} within {timeout_mins} min. {reminder_detail}\n\n" \
+                        f"{settings.submission_statement_rule_description}.\n\n" \
+                        "Please message the moderators if you feel this was an error. " \
+                        "Responses to this comment are not monitored."
+    post.reply_to_post(settings, reminder_response, pin=False, lock=True)
 
 
 class Janitor:
@@ -305,23 +333,8 @@ class Janitor:
         submission_statement = post.find_submission_statement()
         submission_statement_state = Janitor.validate_submission_statement(settings, submission_statement)
 
-        # One last reminder to post a submission statement...
-        if post.is_post_old(reminder_timeout_mins) and not post.is_post_old(timeout_mins):
-            reminder_identifier = "As a final reminder, your post must include a valid submission statement"
-
-            if submission_statement_state == SubmissionStatementState.MISSING or \
-                    submission_statement_state == SubmissionStatementState.TOO_SHORT:
-                if not post.contains_comment(reminder_identifier):
-                    reminder_detail = "Your post is missing a submission statement." \
-                        if submission_statement_state == SubmissionStatementState.MISSING \
-                        else f"The submission statement I identified is too short ({len(submission_statement.body)}" \
-                             f" chars):\n> {submission_statement.body} \n\n" \
-                             f"https://old.reddit.com{submission_statement.permalink}"
-                    reminder_response = f"{reminder_identifier} within {timeout_mins} min. {reminder_detail}\n\n" \
-                                        f"{settings.submission_statement_rule_description}.\n\n" \
-                                        "Please message the moderators if you feel this was an error. " \
-                                        "Responses to this comment are not monitored."
-                    post.reply_to_post(settings, reminder_response, pin=False, lock=True)
+        ss_final_reminder(settings, post, submission_statement, submission_statement_state,
+                          reminder_timeout_mins, timeout_mins)
 
         # users are given time to post a submission statement
         if not post.is_post_old(timeout_mins):
