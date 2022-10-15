@@ -33,6 +33,7 @@ class Settings:
     submission_statement_final_reminder = False
     submission_statement_on_topic_reminder = False
     submission_statement_on_topic_keywords = []
+    submission_statement_on_topic_response = ""
 
     low_effort_flair = ["casual friday", "low effort", "humor", "humour"]
     ss_removal_reason = ("Your post has been removed for not including a submission statement, "
@@ -74,6 +75,7 @@ class CollapseSettings(Settings):
     submission_statement_final_reminder = True
     submission_statement_on_topic_reminder = True
     submission_statement_on_topic_keywords = ["collapse"]
+    submission_statement_on_topic_response = "collapse"
 
 
 class Post:
@@ -171,6 +173,17 @@ class Post:
             comment.mod.lock()
         time.sleep(5)
 
+    def reply_to_comment(self, settings, original_comment, reason, lock=False):
+        print(f"\tReplying to comment, reason: {reason}")
+        if settings.is_dry_run:
+            print("\tDRY RUN!!!")
+            return
+        reply_comment = original_comment.reply(reason)
+        reply_comment.mod.distinguish()
+        if lock:
+            reply_comment.mod.lock()
+        time.sleep(5)
+
     def remove_post(self, settings, reason, note):
         print(f"\tRemoving post, reason: {reason}")
         if settings.is_dry_run:
@@ -186,6 +199,42 @@ class SubmissionStatementState(str, Enum):
     MISSING = "MISSING"
     TOO_SHORT = "TOO_SHORT"
     VALID = "VALID"
+
+
+def ss_on_topic_check(settings, post, submission_statement, submission_statement_state, timeout_mins):
+    # not enabled, or malformed (enabled, but missing keywords or response)
+    if not settings.submission_statement_on_topic_reminder or\
+            not settings.submission_statement_on_topic_keywords or not settings.submission_statement_on_topic_response:
+        return
+    if post.is_post_old(timeout_mins):
+        return
+    if submission_statement_state == SubmissionStatementState.MISSING:
+        return
+    on_topic_identifier = "does not explain how this content is related"
+    for reply in submission_statement.replies:
+        # deleted comment
+        if isinstance(reply.author, type(None)) or reply.removed:
+            continue
+        if on_topic_identifier in reply.body:
+            return
+
+    text = submission_statement.body.lower()
+    for keyword in settings.submission_statement_on_topic_keywords:
+        if keyword in text:
+            # submission statement contains keyword, is on topic
+            return
+    response_keyword = settings.submission_statement_on_topic_response
+    response = "Hi, thanks for contributing and including this submission statement. " \
+               "However, your comment does not appear to explain how this content is related to " + response_keyword + ". " \
+               "Could you please edit this comment to include that, before 30 mins?" \
+               "\n\n" \
+               "If I am wrong and your ss does explain the " + response_keyword + " relation," \
+               " kindly ignore and/or downvote this comment. " \
+               "If your submission statement does not explain how this content is related to collapse, it may be removed." \
+               " (Please remember that if your submission statement is mostly or entirely extracted from the linked article, it will be removed!)" \
+               "\n\n" \
+               "This is a bot. Replies will not receive responses. Please message the moderators if you feel this was an error."
+    post.reply_to_comment(settings, submission_statement, response, lock=True)
 
 
 def ss_final_reminder(settings, post, submission_statement, submission_statement_state,
@@ -323,18 +372,14 @@ class Janitor:
                 print("\tPost has valid post-based submission statement, not doing anything")
                 return
 
-        timeout_mins = settings.submission_statement_time_limit_mins
-        reminder_timeout_mins = timeout_mins / 2
-
-        if not post.is_post_old(reminder_timeout_mins):
-            print("\tTime has not expired")
-            return
-
         submission_statement = post.find_submission_statement()
         submission_statement_state = Janitor.validate_submission_statement(settings, submission_statement)
 
-        ss_final_reminder(settings, post, submission_statement, submission_statement_state,
-                          reminder_timeout_mins, timeout_mins)
+        timeout_mins = settings.submission_statement_time_limit_mins
+        reminder_mins = timeout_mins / 2
+
+        ss_on_topic_check(settings, post, submission_statement, submission_statement_state, timeout_mins)
+        ss_final_reminder(settings, post, submission_statement, submission_statement_state, reminder_mins, timeout_mins)
 
         # users are given time to post a submission statement
         if not post.is_post_old(timeout_mins):
