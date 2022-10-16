@@ -175,13 +175,15 @@ class Post:
             comment.mod.lock()
         time.sleep(5)
 
-    def reply_to_comment(self, settings, original_comment, reason, lock=False):
+    def reply_to_comment(self, settings, original_comment, reason, lock=False, ignore_reports=False):
         print(f"\tReplying to comment, reason: {reason}")
         if settings.is_dry_run:
             print("\tDRY RUN!!!")
             return
         reply_comment = original_comment.reply(reason)
         reply_comment.mod.distinguish()
+        if ignore_reports:
+            reply_comment.mod.ignore_reports()
         if lock:
             reply_comment.mod.lock()
         time.sleep(5)
@@ -236,7 +238,7 @@ def ss_on_topic_check(settings, post, submission_statement, submission_statement
                " (Please remember that if your submission statement is mostly or entirely extracted from the linked article, it will be removed!)" \
                "\n\n" \
                "This is a bot. Replies will not receive responses. Please message the moderators if you feel this was an error."
-    post.reply_to_comment(settings, submission_statement, response, lock=True)
+    post.reply_to_comment(settings, submission_statement, response, lock=True, ignore_reports=True)
 
 
 def ss_final_reminder(settings, post, submission_statement, submission_statement_state,
