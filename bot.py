@@ -30,7 +30,9 @@ class Settings:
     submission_statement_time_limit_mins = 30
     submission_statement_minimum_char_length = 150
     submission_statement_bot_prefix = "The following submission statement was provided by"
+    # replies to post if ss is invalid
     submission_statement_final_reminder = False
+    # replies to ss if doesn't contain any keywords with "related to <response>"
     submission_statement_on_topic_reminder = False
     submission_statement_on_topic_keywords = []
     submission_statement_on_topic_response = ""
