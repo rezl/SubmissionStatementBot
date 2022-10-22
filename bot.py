@@ -220,8 +220,6 @@ class Janitor:
               " bot_username=" + bot_username + " bot_password=" + "*********" +
               " subreddit_names=" + str(subreddit_names))
 
-        self.subreddit_names = subreddit_names
-        self.time_unmoderated_last_checked = datetime.utcfromtimestamp(0)
         self.reddit = praw.Reddit(
             client_id=client_id,
             client_secret=client_secret,
@@ -230,6 +228,11 @@ class Janitor:
             username=bot_username,
             password=bot_password
         )
+
+        self.subreddit_names = subreddit_names
+        self.time_unmoderated_last_checked = {}
+        for subreddit in subreddit_names:
+            self.time_unmoderated_last_checked[self.reddit.subreddit(subreddit)] = datetime.utcfromtimestamp(0)
 
     @staticmethod
     def get_adjusted_utc_timestamp(time_difference_mins):
@@ -376,7 +379,8 @@ class Janitor:
 
     def handle_stale_unmoderated_posts(self, settings, subreddit_mod):
         now = datetime.utcnow()
-        if self.time_unmoderated_last_checked > now - timedelta(minutes=settings.stale_post_check_frequency_mins):
+        last_checked = self.time_unmoderated_last_checked[subreddit_mod.subreddit]
+        if last_checked > now - timedelta(minutes=settings.stale_post_check_frequency_mins):
             return
 
         stale_unmoderated_posts = self.fetch_stale_unmoderated_posts(settings, subreddit_mod)
@@ -389,7 +393,7 @@ class Janitor:
                 post.report_post(settings, reason)
             else:
                 print(f"Not reporting stale unmoderated post: {post.submission.title}\n\t{post.submission.permalink}")
-        self.time_unmoderated_last_checked = now
+        self.time_unmoderated_last_checked[subreddit_mod.subreddit] = now
 
 
 def get_subreddit_settings(subreddit_name):
