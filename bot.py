@@ -162,16 +162,18 @@ def ss_on_topic_check(settings, post, submission_statement, submission_statement
             # submission statement contains keyword, is on topic
             return
     response_keyword = settings.submission_statement_on_topic_response
-    response = "Hi, thanks for contributing and including this submission statement. " \
-               "However, your comment does not appear to explain how this content is related to " + response_keyword + ". " \
+    response = "Hi, thanks for contributing and including this submission statement. However, " \
+               "your comment does not appear to explain how this content is related to " + response_keyword + ". " \
                "Could you please edit this comment to include that, before 30 mins?" \
                "\n\n" \
                "If I am wrong and your ss does explain the " + response_keyword + " relation," \
                " kindly ignore and/or downvote this comment. " \
-               "If your submission statement does not explain how this content is related to collapse, it may be removed." \
-               " (Please remember that if your submission statement is mostly or entirely extracted from the linked article, it will be removed!)" \
+               "If your submission statement does not explain how this content is related to collapse" \
+               ", it may be removed. (Please remember that if your submission statement is mostly" \
+               " or entirely extracted from the linked article, it will be removed!)" \
                "\n\n" \
-               "This is a bot. Replies will not receive responses. Please message the moderators if you feel this was an error."
+               "This is a bot. Replies will not receive responses. " \
+               "Please message the moderators if you feel this was an error."
     post.reply_to_comment(settings, submission_statement, response, lock=True, ignore_reports=True)
 
 
