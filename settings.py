@@ -22,6 +22,8 @@ class Settings:
     submission_statement_on_topic_reminder = False
     submission_statement_on_topic_keywords = []
     submission_statement_on_topic_response = ""
+    submission_statement_on_topic_check_downvotes = False
+    submission_statement_on_topic_removal_score = -50000
 
     low_effort_flair = ["casual friday", "low effort", "humor", "humour"]
     ss_removal_reason = ("Your post has been removed for not including a submission statement, "
@@ -101,3 +103,5 @@ class CollapseSettings(Settings):
                                               "wicked problem",
                                               ]
     submission_statement_on_topic_response = "collapse"
+    submission_statement_on_topic_check_downvotes = True
+    submission_statement_on_topic_removal_score = -5

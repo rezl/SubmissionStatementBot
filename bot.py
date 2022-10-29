@@ -113,7 +113,7 @@ class Post:
         print(f"\tReplying to comment, reason: {reason}")
         if settings.is_dry_run:
             print("\tDRY RUN!!!")
-            return
+            return None
         reply_comment = original_comment.reply(reason)
         reply_comment.mod.distinguish()
         if ignore_reports:
@@ -121,6 +121,7 @@ class Post:
         if lock:
             reply_comment.mod.lock()
         time.sleep(5)
+        return reply_comment
 
     def remove_post(self, settings, reason, note):
         print(f"\tRemoving post, reason: {reason}")
@@ -137,44 +138,6 @@ class SubmissionStatementState(str, Enum):
     MISSING = "MISSING"
     TOO_SHORT = "TOO_SHORT"
     VALID = "VALID"
-
-
-def ss_on_topic_check(settings, post, submission_statement, submission_statement_state, timeout_mins):
-    # not enabled, or malformed (enabled, but missing keywords or response)
-    if not settings.submission_statement_on_topic_reminder or \
-            not settings.submission_statement_on_topic_keywords or not settings.submission_statement_on_topic_response:
-        return
-    if post.is_post_old(timeout_mins):
-        return
-    if submission_statement_state == SubmissionStatementState.MISSING:
-        return
-    on_topic_identifier = "does not explain how this content is related"
-    for reply in submission_statement.replies:
-        # deleted comment
-        if isinstance(reply.author, type(None)) or reply.removed:
-            continue
-        if on_topic_identifier in reply.body:
-            return
-
-    text = submission_statement.body.lower()
-    for keyword in settings.submission_statement_on_topic_keywords:
-        if keyword in text:
-            # submission statement contains keyword, is on topic
-            return
-    response_keyword = settings.submission_statement_on_topic_response
-    response = "Hi, thanks for contributing and including this submission statement. However, " \
-               "your comment does not appear to explain how this content is related to " + response_keyword + ". " \
-               "Could you please edit this comment to include that, before 30 mins?" \
-               "\n\n" \
-               "If I am wrong and your ss does explain the " + response_keyword + " relation," \
-               " kindly ignore and/or downvote this comment. " \
-               "If your submission statement does not explain how this content is related to collapse" \
-               ", it may be removed. (Please remember that if your submission statement is mostly" \
-               " or entirely extracted from the linked article, it will be removed!)" \
-               "\n\n" \
-               "This is a bot. Replies will not receive responses. " \
-               "Please message the moderators if you feel this was an error."
-    post.reply_to_comment(settings, submission_statement, response, lock=True, ignore_reports=True)
 
 
 def ss_final_reminder(settings, post, submission_statement, submission_statement_state,
@@ -236,6 +199,8 @@ class Janitor:
         for subreddit in subreddit_names:
             self.time_unmoderated_last_checked[self.reddit.subreddit(subreddit)] = datetime.utcfromtimestamp(0)
 
+        self.monitored_ss_replies = list()
+
     @staticmethod
     def get_adjusted_utc_timestamp(time_difference_mins):
         adjusted_utc_dt = datetime.utcnow() - timedelta(minutes=time_difference_mins)
@@ -288,10 +253,7 @@ class Janitor:
         if not post.submitted_during_casual_hours():
             post.remove_post(settings, settings.casual_hour_removal_reason, "low effort flair")
 
-    @staticmethod
-    def handle_submission_statement(settings, post):
-        # TODO should we post it ahead of time if there's a match?
-        # TODO should we give a heads up (by commenting this is not done?) a few min ahead of expiration?
+    def handle_submission_statement(self, settings, post):
         # self posts don"t need a submission statement
         if post.submission.is_self:
             print("\tSelf post does not need a SS")
@@ -323,7 +285,7 @@ class Janitor:
         timeout_mins = settings.submission_statement_time_limit_mins
         reminder_mins = timeout_mins / 2
 
-        ss_on_topic_check(settings, post, submission_statement, submission_statement_state, timeout_mins)
+        self.ss_on_topic_check(settings, post, submission_statement, submission_statement_state, timeout_mins)
         ss_final_reminder(settings, post, submission_statement, submission_statement_state, reminder_mins, timeout_mins)
 
         # users are given time to post a submission statement
@@ -363,15 +325,51 @@ class Janitor:
         else:
             print("\tERROR: unsupported submission_statement_state")
 
+    def ss_on_topic_check(self, settings, post, submission_statement, submission_statement_state, timeout_mins):
+        # not enabled, or malformed (enabled, but missing keywords or response)
+        if not settings.submission_statement_on_topic_reminder or \
+                not settings.submission_statement_on_topic_keywords or \
+                not settings.submission_statement_on_topic_response:
+            return
+        if post.is_post_old(timeout_mins):
+            return
+        if submission_statement_state == SubmissionStatementState.MISSING:
+            return
+        on_topic_identifier = "does not explain how this content is related"
+        for reply in submission_statement.replies:
+            # deleted comment
+            if isinstance(reply.author, type(None)) or reply.removed:
+                continue
+            if on_topic_identifier in reply.body:
+                return
+
+        text = submission_statement.body.lower()
+        for keyword in settings.submission_statement_on_topic_keywords:
+            if keyword in text:
+                # submission statement contains keyword, is on topic
+                return
+        response_keyword = settings.submission_statement_on_topic_response
+        response = "Hi, thanks for contributing and including this submission statement. However, " \
+                   "your comment does not appear to explain how this content is related to " + response_keyword + ". " \
+                   "Could you please edit this comment to include that, before 30 mins?" \
+                   "\n\n" \
+                   "If I am wrong and your ss does explain the " + response_keyword + " relation," \
+                   " kindly ignore and/or downvote this comment. " \
+                   "If your submission statement does not explain how this content is related to collapse" \
+                   ", it may be removed. (Please remember that if your submission statement is mostly" \
+                   " or entirely extracted from the linked article, it will be removed!)" \
+                   "\n\n" \
+                   "This is a bot. Replies will not receive responses. " \
+                   "Please message the moderators if you feel this was an error."
+        comment = post.reply_to_comment(settings, submission_statement, response, lock=True, ignore_reports=True)
+        if comment is not None and settings.submission_statement_on_topic_check_downvotes:
+            self.monitored_ss_replies.append(comment.id)
+
     def handle_posts(self, settings, subreddit):
         posts = self.fetch_new_posts(settings, subreddit)
         print("Checking " + str(len(posts)) + " posts")
         for post in posts:
             print(f"Checking post: {post.submission.title}\n\t{post.submission.permalink}")
-
-            if post.submission.removed:
-                print("\tERROR: post has been removed but is in submissions?")
-                continue
 
             try:
                 self.handle_low_effort(settings, post)
@@ -396,6 +394,27 @@ class Janitor:
             else:
                 print(f"Not reporting stale unmoderated post: {post.submission.title}\n\t{post.submission.permalink}")
         self.time_unmoderated_last_checked[subreddit_mod.subreddit] = now
+
+    def handle_monitored_ss_replies(self, settings):
+        if not settings.submission_statement_on_topic_check_downvotes:
+            return
+
+        for comment_id in list(self.monitored_ss_replies):
+            comment = self.reddit.comment(id=comment_id)
+            # deleted comment
+            if comment is None or isinstance(comment.author, type(None)) or comment.removed:
+                self.monitored_ss_replies.remove(comment_id)
+                continue
+            removal_score = settings.submission_statement_on_topic_removal_score
+            if comment.score < removal_score:
+                removal_reason = "Removing ss reply due to low score: " + str(comment.score)
+                print(removal_reason)
+                if not settings.is_dry_run:
+                    comment.mod.remove(mod_note=removal_reason)
+                self.monitored_ss_replies.remove(comment_id)
+            if comment.created_utc < self.get_adjusted_utc_timestamp(60*24):
+                print("Comment is over 1 day old and has [: " + str(comment.score) + "] score. Not monitoring anymore.")
+                self.monitored_ss_replies.remove(comment_id)
 
 
 def get_subreddit_settings(subreddit_name):
@@ -423,6 +442,7 @@ def run_forever():
                         subreddit = janitor.reddit.subreddit(subreddit_name)
                         janitor.handle_posts(settings, subreddit)
                         janitor.handle_stale_unmoderated_posts(settings, subreddit.mod)
+                        janitor.handle_monitored_ss_replies(settings)
                     except Exception as e:
                         print(e)
                 time.sleep(Settings.post_check_frequency_mins * 60)
