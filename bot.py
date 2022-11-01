@@ -419,15 +419,19 @@ class Janitor:
 
         for comment_id in list(self.monitored_ss_replies):
             comment = self.reddit.comment(id=comment_id)
-            # deleted comment
-            if comment is None or isinstance(comment.author, type(None)) or comment.removed:
+            # deleted/removed comment or post
+            if comment is None or isinstance(comment.author, type(None)) or comment.removed \
+                    or isinstance(comment.submission.author, type(None)) or comment.submission.removed:
                 self.monitored_ss_replies.remove(comment_id)
                 continue
             removal_score = settings.submission_statement_on_topic_removal_score
             if comment.score < removal_score:
                 removal_reason = "Removing ss reply due to low score: " + str(comment.score)
                 remove_comment(removal_reason, comment, settings, self.monitored_ss_replies)
-            if comment.created_utc < self.get_adjusted_utc_timestamp(60*24):
+            elif comment.submission.approved:
+                removal_reason = "Removing ss reply due to approved post"
+                remove_comment(removal_reason, comment, settings, self.monitored_ss_replies)
+            elif comment.created_utc < self.get_adjusted_utc_timestamp(60*24):
                 print("Comment is over 1 day old and has [: " + str(comment.score) + "] score. Not monitoring anymore.")
                 self.monitored_ss_replies.remove(comment_id)
 
