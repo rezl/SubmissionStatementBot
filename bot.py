@@ -13,6 +13,16 @@ from settings import *
 import time
 
 
+def remove_comment(removal_reason, comment, settings, monitored_ss_replies):
+    print(f"\tRemoving comment, reason: {removal_reason}")
+    if settings.is_dry_run:
+        print("\tDRY RUN!!!")
+        return
+    comment.mod.remove(mod_note=removal_reason)
+    monitored_ss_replies.remove(comment.id)
+    time.sleep(5)
+
+
 class Post:
     def __init__(self, submission):
         self.submission = submission
@@ -335,13 +345,21 @@ class Janitor:
             return
         if submission_statement_state == SubmissionStatementState.MISSING:
             return
+
         on_topic_identifier = "does not explain how this content is related"
+        bot_comment = None
         for reply in submission_statement.replies:
-            # deleted comment
-            if isinstance(reply.author, type(None)) or reply.removed:
-                continue
             if on_topic_identifier in reply.body:
-                return
+                bot_comment = reply
+
+        if post.submission.approved:
+            if bot_comment in self.monitored_ss_replies:
+                removal_reason = "Removing ss reply due to approved post"
+                post.remove_comment(removal_reason, bot_comment, settings, self.monitored_ss_replies)
+            return
+
+        if bot_comment:
+            return
 
         text = submission_statement.body.lower()
         for keyword in settings.submission_statement_on_topic_keywords:
@@ -408,10 +426,7 @@ class Janitor:
             removal_score = settings.submission_statement_on_topic_removal_score
             if comment.score < removal_score:
                 removal_reason = "Removing ss reply due to low score: " + str(comment.score)
-                print(removal_reason)
-                if not settings.is_dry_run:
-                    comment.mod.remove(mod_note=removal_reason)
-                self.monitored_ss_replies.remove(comment_id)
+                remove_comment(removal_reason, comment, settings, self.monitored_ss_replies)
             if comment.created_utc < self.get_adjusted_utc_timestamp(60*24):
                 print("Comment is over 1 day old and has [: " + str(comment.score) + "] score. Not monitoring anymore.")
                 self.monitored_ss_replies.remove(comment_id)
