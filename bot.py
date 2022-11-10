@@ -13,13 +13,12 @@ from settings import *
 import time
 
 
-def remove_comment(removal_reason, comment, settings, monitored_ss_replies):
+def remove_comment(removal_reason, comment, settings):
     print(f"\tRemoving comment, reason: {removal_reason}")
     if settings.is_dry_run:
         print("\tDRY RUN!!!")
         return
     comment.mod.remove(mod_note=removal_reason)
-    monitored_ss_replies.remove(comment.id)
     time.sleep(5)
 
 
@@ -204,6 +203,7 @@ class Janitor:
             password=bot_password
         )
 
+        self.bot_username = bot_username
         self.subreddit_names = subreddit_names
         self.time_unmoderated_last_checked = {}
         for subreddit in subreddit_names:
@@ -304,6 +304,8 @@ class Janitor:
             return
         print("\tTime has expired")
 
+        self.remove_bot_comments(settings, post)
+
         if submission_statement_state == SubmissionStatementState.MISSING:
             print("\tPost does NOT have submission statement")
             if post.is_moderator_approved():
@@ -354,8 +356,9 @@ class Janitor:
 
         if post.submission.approved:
             if bot_comment in self.monitored_ss_replies:
-                removal_reason = "Removing ss reply due to approved post"
-                post.remove_comment(removal_reason, bot_comment, settings, self.monitored_ss_replies)
+                removal_reason = "Removed ss reply due to approved post"
+                remove_comment(removal_reason, bot_comment, settings)
+                self.monitored_ss_replies.remove(bot_comment.id)
             return
 
         if bot_comment:
@@ -426,14 +429,25 @@ class Janitor:
                 continue
             removal_score = settings.submission_statement_on_topic_removal_score
             if comment.score < removal_score:
-                removal_reason = "Removing ss reply due to low score: " + str(comment.score)
-                remove_comment(removal_reason, comment, settings, self.monitored_ss_replies)
+                removal_reason = "Removed ss reply due to low score: " + str(comment.score)
+                remove_comment(removal_reason, comment, settings)
+                self.monitored_ss_replies.remove(comment.id)
             elif comment.submission.approved:
-                removal_reason = "Removing ss reply due to approved post"
-                remove_comment(removal_reason, comment, settings, self.monitored_ss_replies)
+                removal_reason = "Removed ss reply due to approved post"
+                remove_comment(removal_reason, comment, settings)
+                self.monitored_ss_replies.remove(comment.id)
             elif comment.created_utc < self.get_adjusted_utc_timestamp(60*24):
                 print("Comment is over 1 day old and has [: " + str(comment.score) + "] score. Not monitoring anymore.")
                 self.monitored_ss_replies.remove(comment_id)
+
+    def remove_bot_comments(self, settings, post):
+        for comment in post.submission.comments:
+            # deleted comment
+            if isinstance(comment.author, type(None)) or comment.removed:
+                continue
+            if comment.author == self.bot_username:
+                removal_reason = "Cleaned up non-submission statement comment"
+                remove_comment(removal_reason, comment, settings)
 
 
 def get_subreddit_settings(subreddit_name):
