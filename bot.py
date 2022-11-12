@@ -354,34 +354,49 @@ class Janitor:
             if on_topic_identifier in reply.body:
                 bot_comment = reply
 
+        text = submission_statement.body.lower()
+        contains_on_topic_keyword = False
+        for keyword in settings.submission_statement_on_topic_keywords:
+            if keyword in text:
+                contains_on_topic_keyword = True
+
+        # remove bot comment if post is approved or has been edited to contain a keyword
+        removal_score = settings.submission_statement_on_topic_removal_score
         if post.submission.approved:
             if bot_comment in self.monitored_ss_replies:
                 removal_reason = "Removed ss reply due to approved post"
                 remove_comment(removal_reason, bot_comment, settings)
                 self.monitored_ss_replies.remove(bot_comment.id)
             return
-
-        if bot_comment:
+        elif contains_on_topic_keyword:
+            if bot_comment in self.monitored_ss_replies:
+                removal_reason = "Removed ss reply due to edited ss contains keyword"
+                remove_comment(removal_reason, bot_comment, settings)
+                self.monitored_ss_replies.remove(bot_comment.id)
+            return
+        elif bot_comment.score < removal_score:
+            if bot_comment in self.monitored_ss_replies:
+                removal_reason = "Removed ss reply due to low score: " + str(bot_comment.score)
+                remove_comment(removal_reason, bot_comment, settings)
+                self.monitored_ss_replies.remove(bot_comment.id)
             return
 
-        text = submission_statement.body.lower()
-        for keyword in settings.submission_statement_on_topic_keywords:
-            if keyword in text:
-                # submission statement contains keyword, is on topic
-                return
+        if bot_comment or contains_on_topic_keyword:
+            return
+
         response_keyword = settings.submission_statement_on_topic_response
-        response = "Hi, thanks for contributing and including this submission statement. However, " \
-                   "your comment does not appear to explain how this content is related to " + response_keyword + ". " \
-                   "Could you please edit this comment to include that, before 30 mins?" \
-                   "\n\n" \
-                   "If I am wrong and your ss does explain the " + response_keyword + " relation," \
-                   " kindly ignore and/or downvote this comment. " \
-                   "If your submission statement does not explain how this content is related to collapse" \
-                   ", it may be removed. (Please remember that if your submission statement is mostly" \
-                   " or entirely extracted from the linked article, it will be removed!)" \
-                   "\n\n" \
-                   "This is a bot. Replies will not receive responses. " \
-                   "Please message the moderators if you feel this was an error."
+        response = f"Hi, thanks for contributing and including this submission statement. However, " \
+                   f"your comment does not appear to explain how this content is related to {response_keyword}. " \
+                   f"Could you please edit this comment to include that, before 30 mins?" \
+                   f"\n\n" \
+                   f"If I am wrong and your ss does explain the {response_keyword} relation," \
+                   f" kindly ignore and/or downvote this comment." \
+                   f"If your submission statement does not explain how this content is related to collapse" \
+                   f", it may be removed. (Please remember that if your submission statement is mostly" \
+                   f" or entirely extracted from the linked article, it will be removed!)" \
+                   f"\n\n" \
+                   f"This is a bot. Replies will not receive responses. " \
+                   f"Please message the moderators if you feel this was an error."
         comment = post.reply_to_comment(settings, submission_statement, response, lock=True, ignore_reports=True)
         if comment is not None and settings.submission_statement_on_topic_check_downvotes:
             self.monitored_ss_replies.append(comment.id)
@@ -420,6 +435,7 @@ class Janitor:
         if not settings.submission_statement_on_topic_check_downvotes:
             return
 
+        print(f"Monitored ss replies: {str(list(self.monitored_ss_replies))}")
         for comment_id in list(self.monitored_ss_replies):
             comment = self.reddit.comment(id=comment_id)
             # deleted/removed comment or post
@@ -436,7 +452,7 @@ class Janitor:
                 removal_reason = "Removed ss reply due to approved post"
                 remove_comment(removal_reason, comment, settings)
                 self.monitored_ss_replies.remove(comment.id)
-            elif comment.created_utc < self.get_adjusted_utc_timestamp(60*24):
+            elif comment.created_utc < self.get_adjusted_utc_timestamp(60 * 24):
                 print("Comment is over 1 day old and has [: " + str(comment.score) + "] score. Not monitoring anymore.")
                 self.monitored_ss_replies.remove(comment_id)
 
