@@ -178,15 +178,15 @@ def ss_final_reminder(settings, post, submission_statement, submission_statement
 class Janitor:
     def __init__(self):
         # get config from env vars if set, otherwise from config file
-        client_id = os.environ["CLIENT_ID"] if "CLIENT_ID" in os.environ else config.CLIENT_ID
-        client_secret = os.environ["CLIENT_SECRET"] if "CLIENT_SECRET" in os.environ else config.CLIENT_SECRET
-        bot_username = os.environ["BOT_USERNAME"] if "BOT_USERNAME" in os.environ else config.BOT_USERNAME
-        bot_password = os.environ["BOT_PASSWORD"] if "BOT_PASSWORD" in os.environ else config.BOT_PASSWORD
+        client_id = os.environ.get("CLIENT_ID", config.CLIENT_ID)
+        client_secret = os.environ.get("CLIENT_SECRET", config.CLIENT_SECRET)
+        bot_username = os.environ.get("BOT_USERNAME", config.BOT_USERNAME)
+        bot_password = os.environ.get("BOT_PASSWORD", config.BOT_PASSWORD)
 
         if hasattr(config, "SUBREDDITS"):
-            subreddits_config = os.environ["SUBREDDITS"] if "SUBREDDITS" in os.environ else config.SUBREDDITS
+            subreddits_config = os.environ.get("SUBREDDITS", config.SUBREDDITS)
         else:
-            subreddits_config = os.environ["SUBREDDIT"] if "SUBREDDIT" in os.environ else config.SUBREDDIT
+            subreddits_config = os.environ.get("SUBREDDIT", config.SUBREDDIT)
 
         subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(",")]
 
@@ -197,7 +197,7 @@ class Janitor:
         self.reddit = praw.Reddit(
             client_id=client_id,
             client_secret=client_secret,
-            user_agent="my user agent",
+            user_agent="flyio:com.collapse.collapsebot:v3.1",
             redirect_uri="http://localhost:8080",  # unused for script applications
             username=bot_username,
             password=bot_password
@@ -264,7 +264,7 @@ class Janitor:
             post.remove_post(settings, settings.casual_hour_removal_reason, "low effort flair")
 
     def handle_submission_statement(self, settings, post):
-        # self posts don"t need a submission statement
+        # self posts don't need a submission statement
         if post.submission.is_self:
             print("\tSelf post does not need a SS")
             return
@@ -485,8 +485,7 @@ def run_forever():
                     try:
                         settings = get_subreddit_settings(subreddit_name)
                         print("____________________")
-                        print("Checking Subreddit: " + subreddit_name + " with ["
-                              + settings.__class__.__name__ + "] settings")
+                        print(f"Checking Subreddit: {subreddit_name} with {type(settings).__name__} settings")
 
                         subreddit = janitor.reddit.subreddit(subreddit_name)
                         janitor.handle_posts(settings, subreddit)
