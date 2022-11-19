@@ -1,6 +1,6 @@
-# fly.toml file generated for weathered-tree-5114 on 2022-09-10T23:57:55+01:00
+# fly.toml file generated for submission-bot on 2022-11-19T00:15:56Z
 
-app = "submission-statement-bot"
+app = "submission-bot"
 kill_signal = "SIGINT"
 kill_timeout = 5
 processes = []
