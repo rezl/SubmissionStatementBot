@@ -1,9 +1,6 @@
-# Summarized:
-# - moderates submission statement (recomment ss, report/remove)
-# - moderates low effort flairs (removes outside casual friday)
-# - reports unmoderated posts
 import asyncio
 import calendar
+import traceback
 from threading import Thread
 
 import discord as discord
@@ -338,7 +335,7 @@ class Janitor:
                 post.reply_to_post(settings, settings.submission_statement_pin_text(submission_statement),
                                    pin=True, lock=True)
         else:
-            print("\tERROR: unsupported submission_statement_state")
+            raise RuntimeError(f"\tUnsupported submission_statement_state: {submission_statement_state}")
 
     def ss_on_topic_check(self, settings, post, submission_statement, submission_statement_state, timeout_mins):
         # not enabled, or malformed (enabled, but missing keywords or response)
@@ -408,7 +405,7 @@ class Janitor:
                 self.handle_low_effort(settings, post)
                 self.handle_submission_statement(settings, post)
             except Exception as e:
-                message = f"Exception in handle_posts loop for {post.submission.title}: {e}"
+                message = f"Exception in handle_posts loop for {post.submission.title}: {e}\n{traceback.format_exc()}"
                 self.discord_client.send_msg(message)
                 print(message)
 
@@ -526,12 +523,12 @@ def run_forever():
                         janitor.handle_stale_unmoderated_posts(settings, subreddit.mod)
                         janitor.handle_monitored_ss_replies(settings)
                     except Exception as e:
-                        message = f"Exception in janitor loop: {e}"
+                        message = f"Exception in janitor loop: {e}\n{traceback.format_exc()}"
                         client.send_msg(message)
                         print(message)
                 time.sleep(Settings.post_check_frequency_mins * 60)
         except Exception as e:
-            message = f"Exception in main loop: {e}"
+            message = f"Exception in main loop: {e}\n{traceback.format_exc()}"
             client.send_msg(message)
             print(message)
             time.sleep(Settings.post_check_frequency_mins * 60)
