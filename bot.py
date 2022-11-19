@@ -197,7 +197,7 @@ class Janitor:
         self.reddit = praw.Reddit(
             client_id=client_id,
             client_secret=client_secret,
-            user_agent="flyio:com.collapse.collapsebot:v3.1",
+            user_agent="flyio:com.statementbot.statement-bot:v3.1",
             redirect_uri="http://localhost:8080",  # unused for script applications
             username=bot_username,
             password=bot_password
