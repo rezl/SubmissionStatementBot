@@ -374,7 +374,7 @@ class Janitor:
                 remove_comment(removal_reason, bot_comment, settings)
                 self.monitored_ss_replies.remove(bot_comment.id)
             return
-        elif bot_comment.score < removal_score:
+        elif bot_comment and bot_comment.score < removal_score:
             if bot_comment in self.monitored_ss_replies:
                 removal_reason = "Removed ss reply due to low score: " + str(bot_comment.score)
                 remove_comment(removal_reason, bot_comment, settings)
