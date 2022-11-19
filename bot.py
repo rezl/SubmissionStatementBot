@@ -316,11 +316,9 @@ class Janitor:
         if submission_statement_state == SubmissionStatementState.MISSING:
             print("\tPost does NOT have submission statement")
             if post.is_moderator_approved():
-                reason = "Moderator approved post, but there is no SS. Please double check."
-                post.report_post(settings, reason)
+                post.report_post(settings, "Moderator approved post, but there is no SS. Please double check.")
             elif settings.report_submission_statement_timeout:
-                reason = "Post has no submission statement after timeout. Please take a look."
-                post.report_post(settings, reason)
+                post.report_post(settings, "Post has no submission statement after timeout. Please take a look.")
             else:
                 post.remove_post(settings, settings.ss_removal_reason, "No submission statement")
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
@@ -328,14 +326,12 @@ class Janitor:
             if settings.submission_statement_pin:
                 post.reply_to_post(settings, settings.submission_statement_pin_text(submission_statement),
                                    pin=True, lock=True)
-            reason = "Submission statement is too short"
             if post.is_moderator_approved():
-                reason = "Moderator approved post, but SS is too short. Please double check."
-                post.report_post(settings, reason)
+                post.report_post(settings, "Moderator approved post, but SS is too short. Please double check.")
             elif settings.report_submission_statement_insufficient_length:
-                post.report_post(settings, reason)
+                post.report_post(settings, "Submission statement is too short")
             else:
-                post.remove_post(settings, settings.ss_removal_reason, reason)
+                post.remove_post(settings, settings.ss_removal_reason, "Submission statement is too short")
         elif submission_statement_state == SubmissionStatementState.VALID:
             print("\tPost has valid submission statement")
             if settings.submission_statement_pin:
@@ -360,34 +356,28 @@ class Janitor:
         for reply in submission_statement.replies:
             if on_topic_identifier in reply.body:
                 bot_comment = reply
+                break
 
         text = submission_statement.body.lower()
         contains_on_topic_keyword = False
         for keyword in settings.submission_statement_on_topic_keywords:
             if keyword in text:
                 contains_on_topic_keyword = True
+                break
 
         # remove bot comment if post is approved or has been edited to contain a keyword
         removal_score = settings.submission_statement_on_topic_removal_score
         if post.submission.approved:
-            if bot_comment in self.monitored_ss_replies:
-                removal_reason = "Removed ss reply due to approved post"
-                remove_comment(removal_reason, bot_comment, settings)
-                self.monitored_ss_replies.remove(bot_comment.id)
+            self.remove_on_topic(settings, bot_comment, "Removed ss reply due to approved post")
             return
         elif contains_on_topic_keyword:
-            if bot_comment in self.monitored_ss_replies:
-                removal_reason = "Removed ss reply due to edited ss contains keyword"
-                remove_comment(removal_reason, bot_comment, settings)
-                self.monitored_ss_replies.remove(bot_comment.id)
+            self.remove_on_topic(settings, bot_comment, "Removed ss reply due to edited ss contains keyword")
             return
         elif bot_comment and bot_comment.score < removal_score:
-            if bot_comment in self.monitored_ss_replies:
-                removal_reason = "Removed ss reply due to low score: " + str(bot_comment.score)
-                remove_comment(removal_reason, bot_comment, settings)
-                self.monitored_ss_replies.remove(bot_comment.id)
+            self.remove_on_topic(settings, bot_comment, f"Removed ss reply due to low score: {str(bot_comment.score)}")
             return
 
+        # bot comment exists, or ss is already on topic
         if bot_comment or contains_on_topic_keyword:
             return
 
@@ -445,24 +435,20 @@ class Janitor:
             return
 
         print(f"Monitored ss replies: {str(list(self.monitored_ss_replies))}")
+        removal_score = settings.submission_statement_on_topic_removal_score
         for comment_id in list(self.monitored_ss_replies):
             comment = self.reddit.comment(id=comment_id)
             # deleted/removed comment or post
             if comment is None or isinstance(comment.author, type(None)) or comment.removed \
                     or isinstance(comment.submission.author, type(None)) or comment.submission.removed:
+                print(f"Not monitoring {comment_id} anymore, comment or post is removed/deleted")
                 self.monitored_ss_replies.remove(comment_id)
-                continue
-            removal_score = settings.submission_statement_on_topic_removal_score
-            if comment.score < removal_score:
-                removal_reason = "Removed ss reply due to low score: " + str(comment.score)
-                remove_comment(removal_reason, comment, settings)
-                self.monitored_ss_replies.remove(comment.id)
+            elif comment.score < removal_score:
+                self.remove_on_topic(settings, comment, f"Removed {comment_id} due to low score: {str(comment.score)}")
             elif comment.submission.approved:
-                removal_reason = "Removed ss reply due to approved post"
-                remove_comment(removal_reason, comment, settings)
-                self.monitored_ss_replies.remove(comment.id)
+                self.remove_on_topic(settings, comment, "Removed {comment_id} due to approved post")
             elif comment.created_utc < self.get_adjusted_utc_timestamp(60 * 24):
-                print("Comment is over 1 day old and has [: " + str(comment.score) + "] score. Not monitoring anymore.")
+                print(f"Not monitoring {comment_id} anymore, over 1 day old and has [{str(comment.score)}] score")
                 self.monitored_ss_replies.remove(comment_id)
 
     def remove_bot_comments(self, settings, post):
@@ -473,6 +459,11 @@ class Janitor:
             if comment.author == self.bot_username:
                 removal_reason = "Cleaned up non-submission statement comment"
                 remove_comment(removal_reason, comment, settings)
+
+    def remove_on_topic(self, settings, bot_comment, reason):
+        if bot_comment in self.monitored_ss_replies:
+            remove_comment(reason, bot_comment, settings)
+            self.monitored_ss_replies.remove(bot_comment.id)
 
 
 def get_subreddit_settings(subreddit_name):
