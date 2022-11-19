@@ -2,8 +2,13 @@
 # - moderates submission statement (recomment ss, report/remove)
 # - moderates low effort flairs (removes outside casual friday)
 # - reports unmoderated posts
-
+import asyncio
 import calendar
+from threading import Thread
+
+import discord as discord
+from discord.ext import commands
+
 import config
 from datetime import datetime, timedelta
 from enum import Enum
@@ -176,7 +181,9 @@ def ss_final_reminder(settings, post, submission_statement, submission_statement
 
 
 class Janitor:
-    def __init__(self):
+    def __init__(self, discord_client):
+        self.discord_client = discord_client
+
         # get config from env vars if set, otherwise from config file
         client_id = os.environ.get("CLIENT_ID", config.CLIENT_ID)
         client_secret = os.environ.get("CLIENT_SECRET", config.CLIENT_SECRET)
@@ -411,7 +418,9 @@ class Janitor:
                 self.handle_low_effort(settings, post)
                 self.handle_submission_statement(settings, post)
             except Exception as e:
-                print(e)
+                message = f"Exception in handle_posts loop for {post.submission.title}: {e}"
+                self.discord_client.send_msg(message)
+                print(message)
 
     def handle_stale_unmoderated_posts(self, settings, subreddit_mod):
         now = datetime.utcnow()
@@ -476,10 +485,44 @@ def get_subreddit_settings(subreddit_name):
         return Settings()
 
 
+class DiscordClient(commands.Bot):
+    def __init__(self, guild_name, bot_channel):
+        super().__init__('!', intents=discord.Intents.default())
+        self.guild_name = guild_name
+        self.bot_channel = bot_channel
+        self.guild = None
+        self.channel = None
+        self.is_ready = False
+
+    async def on_ready(self):
+        print(f'{self.user} has connected to Discord!')
+        self.guild = discord.utils.get(self.guilds, name=self.guild_name)
+        self.channel = discord.utils.get(self.guild.channels, name=self.bot_channel)
+        self.is_ready = True
+        print(
+            f'{self.user} is connected to the following guild:\n'
+            f'{self.guild.name}(id: {self.guild.id})'
+        )
+
+    def send_msg(self, message):
+        full_message = f"StatementBot script has had an exception. Please check on it.\n{message}"
+        if self.channel:
+            asyncio.run_coroutine_threadsafe(self.channel.send(full_message), self.loop)
+
+
 def run_forever():
+    discord_token = os.environ.get("DISCORD_TOKEN", config.DISCORD_TOKEN)
+    guild_name = os.environ.get("DISCORD_GUILD", config.DISCORD_GUILD)
+    guild_channel = os.environ.get("DISCORD_CHANNEL", config.DISCORD_CHANNEL)
+    client = DiscordClient(guild_name, guild_channel)
+    Thread(target=client.run, args=(discord_token,)).start()
+
+    while not client.is_ready:
+        time.sleep(1)
+
     while True:
         try:
-            janitor = Janitor()
+            janitor = Janitor(client)
             while True:
                 for subreddit_name in janitor.subreddit_names:
                     try:
@@ -492,22 +535,16 @@ def run_forever():
                         janitor.handle_stale_unmoderated_posts(settings, subreddit.mod)
                         janitor.handle_monitored_ss_replies(settings)
                     except Exception as e:
-                        print(e)
+                        message = f"Exception in janitor loop: {e}"
+                        client.send_msg(message)
+                        print(message)
                 time.sleep(Settings.post_check_frequency_mins * 60)
         except Exception as e:
-            print(e)
-        time.sleep(Settings.post_check_frequency_mins * 60)
-
-
-def run_once():
-    janitor = Janitor()
-    for subreddit_name in janitor.subreddit_names:
-        settings = get_subreddit_settings(subreddit_name)
-        subreddit = janitor.reddit.subreddit(subreddit_name)
-        janitor.handle_posts(settings, subreddit)
-        janitor.handle_stale_unmoderated_posts(settings, subreddit.mod)
+            message = f"Exception in main loop: {e}"
+            client.send_msg(message)
+            print(message)
+            time.sleep(Settings.post_check_frequency_mins * 60)
 
 
 if __name__ == "__main__":
-    # run_once()
     run_forever()

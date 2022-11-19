@@ -8,3 +8,5 @@ six==1.14.0
 update-checker==0.16
 urllib3==1.25.9
 websocket-client==0.57.0
+
+discord~=2.1.0
