@@ -475,7 +475,7 @@ def get_subreddit_settings(subreddit_name):
 
 class DiscordClient(commands.Bot):
     def __init__(self, guild_name, bot_channel):
-        super().__init__('!', intents=discord.Intents.default())
+        super().__init__('!', intents=discord.Intents.all())
         self.guild_name = guild_name
         self.bot_channel = bot_channel
         self.guild = None
