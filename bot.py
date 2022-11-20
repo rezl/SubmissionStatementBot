@@ -420,8 +420,8 @@ class Janitor:
         for post in stale_unmoderated_posts:
             print(f"Checking unmoderated post: {post.submission.title}")
             if settings.report_stale_unmoderated_posts:
-                reason = "This post is over " + str(round(settings.stale_post_check_threshold_mins / 60, 2)) + \
-                         "hours old and has not been moderated. Please take a look!"
+                rounded_time = str(round(settings.stale_post_check_threshold_mins / 60, 2))
+                reason = f"This post is over {rounded_time} hours old and has not been moderated. Please take a look!"
                 post.report_post(settings, reason)
             else:
                 print(f"Not reporting stale unmoderated post: {post.submission.title}\n\t{post.submission.permalink}")
