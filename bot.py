@@ -405,7 +405,7 @@ class Janitor:
                 self.handle_low_effort(settings, post)
                 self.handle_submission_statement(settings, post)
             except Exception as e:
-                message = f"Exception in handle_posts loop for {post.submission.title}: {e}\n{traceback.format_exc()}"
+                message = f"Exception when handling post {post.submission.title}: {e}\n```{traceback.format_exc()}```"
                 self.discord_client.send_msg(message)
                 print(message)
 
@@ -493,7 +493,8 @@ class DiscordClient(commands.Bot):
         )
 
     def send_msg(self, message):
-        full_message = f"StatementBot script has had an exception. Please check on it.\n```{message}```"
+        full_message = f"StatementBot script has had an exception. This can normally be ignored, " \
+                       f"but if it's occurring frequently, may indicate a script error.\n{message}"
         if self.channel:
             asyncio.run_coroutine_threadsafe(self.channel.send(full_message), self.loop)
 
@@ -523,12 +524,12 @@ def run_forever():
                         janitor.handle_stale_unmoderated_posts(settings, subreddit.mod)
                         janitor.handle_monitored_ss_replies(settings)
                     except Exception as e:
-                        message = f"Exception in janitor loop: {e}\n{traceback.format_exc()}"
+                        message = f"Exception when handling all posts: {e}\n```{traceback.format_exc()}```"
                         client.send_msg(message)
                         print(message)
                 time.sleep(Settings.post_check_frequency_mins * 60)
         except Exception as e:
-            message = f"Exception in main loop: {e}\n{traceback.format_exc()}"
+            message = f"Exception in main processing: {e}\n```{traceback.format_exc()}```"
             client.send_msg(message)
             print(message)
             time.sleep(Settings.post_check_frequency_mins * 60)
