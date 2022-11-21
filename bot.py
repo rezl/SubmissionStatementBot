@@ -493,7 +493,7 @@ class DiscordClient(commands.Bot):
         )
 
     def send_msg(self, message):
-        full_message = f"StatementBot script has had an exception. Please check on it.\n{message}"
+        full_message = f"StatementBot script has had an exception. Please check on it.\n```{message}```"
         if self.channel:
             asyncio.run_coroutine_threadsafe(self.channel.send(full_message), self.loop)
 
