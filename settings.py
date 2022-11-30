@@ -3,7 +3,7 @@ class Settings:
     is_dry_run = False
 
     report_submission_statement_insufficient_length = False
-    report_stale_unmoderated_posts = True
+    report_stale_unmoderated_posts = False
     report_submission_statement_timeout = False
 
     post_check_frequency_mins = 5
@@ -62,6 +62,8 @@ class Settings:
 
 
 class CollapseSettings(Settings):
+    report_stale_unmoderated_posts = True
+
     submission_statement_final_reminder = True
     submission_statement_on_topic_reminder = True
     # copy to a <file>, $ cat <file> | tr "[:upper:]" "[:lower:]" | sort | less
