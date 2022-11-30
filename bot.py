@@ -194,9 +194,7 @@ class Janitor:
 
         subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(",")]
 
-        print("CONFIG: client_id=" + client_id + " client_secret=" + "*********" +
-              " bot_username=" + bot_username + " bot_password=" + "*********" +
-              " subreddit_names=" + str(subreddit_names))
+        print("CONFIG: subreddit_names=" + str(subreddit_names))
 
         self.reddit = praw.Reddit(
             client_id=client_id,
