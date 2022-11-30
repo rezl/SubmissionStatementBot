@@ -186,11 +186,7 @@ class Janitor:
         client_secret = os.environ.get("CLIENT_SECRET", config.CLIENT_SECRET)
         bot_username = os.environ.get("BOT_USERNAME", config.BOT_USERNAME)
         bot_password = os.environ.get("BOT_PASSWORD", config.BOT_PASSWORD)
-
-        if hasattr(config, "SUBREDDITS"):
-            subreddits_config = os.environ.get("SUBREDDITS", config.SUBREDDITS)
-        else:
-            subreddits_config = os.environ.get("SUBREDDIT", config.SUBREDDIT)
+        subreddits_config = os.environ.get("SUBREDDITS", config.SUBREDDITS)
 
         subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(",")]
         message = str(subreddit_names) + " " + subreddits_config
