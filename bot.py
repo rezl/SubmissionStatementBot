@@ -193,6 +193,9 @@ class Janitor:
             subreddits_config = os.environ.get("SUBREDDIT", config.SUBREDDIT)
 
         subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(",")]
+        message = str(subreddit_names)
+        self.discord_client.send_msg(message)
+        print(message)
 
         print("CONFIG: subreddit_names=" + str(subreddit_names))
 
