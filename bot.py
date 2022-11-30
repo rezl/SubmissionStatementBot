@@ -178,22 +178,9 @@ def ss_final_reminder(settings, post, submission_statement, submission_statement
 
 
 class Janitor:
-    def __init__(self, discord_client):
+    def __init__(self, discord_client, client_id, client_secret, bot_username, bot_password, subreddits):
         self.discord_client = discord_client
-
-        # get config from env vars if set, otherwise from config file
-        client_id = os.environ.get("CLIENT_ID", config.CLIENT_ID)
-        client_secret = os.environ.get("CLIENT_SECRET", config.CLIENT_SECRET)
-        bot_username = os.environ.get("BOT_USERNAME", config.BOT_USERNAME)
-        bot_password = os.environ.get("BOT_PASSWORD", config.BOT_PASSWORD)
-        subreddits_config = os.environ.get("SUBREDDITS", config.SUBREDDITS)
-
-        subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(",")]
-        message = str(subreddit_names) + " " + subreddits_config
-        self.discord_client.send_msg(message)
-        print(message)
-
-        print("CONFIG: subreddit_names=" + str(subreddit_names))
+        subreddit_names = [subreddit.strip() for subreddit in subreddits.split(",")]
 
         self.reddit = praw.Reddit(
             client_id=client_id,
@@ -497,9 +484,18 @@ class DiscordClient(commands.Bot):
 
 
 def run_forever():
+    # get config from env vars if set, otherwise from config file
+    client_id = os.environ.get("CLIENT_ID", config.CLIENT_ID)
+    client_secret = os.environ.get("CLIENT_SECRET", config.CLIENT_SECRET)
+    bot_username = os.environ.get("BOT_USERNAME", config.BOT_USERNAME)
+    bot_password = os.environ.get("BOT_PASSWORD", config.BOT_PASSWORD)
+    subreddits = os.environ.get("SUBREDDITS", config.SUBREDDITS)
     discord_token = os.environ.get("DISCORD_TOKEN", config.DISCORD_TOKEN)
     guild_name = os.environ.get("DISCORD_GUILD", config.DISCORD_GUILD)
     guild_channel = os.environ.get("DISCORD_CHANNEL", config.DISCORD_CHANNEL)
+
+    print("CONFIG: subreddit_names=" + str(subreddits))
+
     client = DiscordClient(guild_name, guild_channel)
     Thread(target=client.run, args=(discord_token,)).start()
 
@@ -508,7 +504,7 @@ def run_forever():
 
     while True:
         try:
-            janitor = Janitor(client)
+            janitor = Janitor(client, client_id, client_secret, bot_username, bot_password, subreddits)
             while True:
                 for subreddit_name in janitor.subreddit_names:
                     try:
