@@ -192,7 +192,7 @@ class Janitor:
         else:
             subreddits_config = os.environ.get("SUBREDDIT", config.SUBREDDIT)
 
-        subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(" ")]
+        subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(",")]
 
         print("CONFIG: client_id=" + client_id + " client_secret=" + "*********" +
               " bot_username=" + bot_username + " bot_password=" + "*********" +
