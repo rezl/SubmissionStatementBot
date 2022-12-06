@@ -59,11 +59,12 @@ class Post:
                         return True
         return False
 
-    def contains_comment(self, text):
+    def contains_comment(self, text, include_deleted=False):
         for comment in self.submission.comments:
-            # deleted comment
-            if isinstance(comment.author, type(None)) or comment.removed:
-                continue
+            if not include_deleted:
+                if isinstance(comment.author, type(None)) or comment.removed:
+                    continue
+
             if text in comment.body:
                 return True
         return False
@@ -271,7 +272,7 @@ class Janitor:
                        "(which I would post shortly, if it meets submission statement requirements).\n" \
                        "Please message the moderators if you feel this was an error. " \
                        "Responses to this comment are not monitored."
-                if not post.contains_comment(text):
+                if not post.contains_comment(text, include_deleted=True):
                     post.reply_to_post(settings, text, pin=False, lock=True)
             else:
                 print("\tPost has valid post-based submission statement, not doing anything")
