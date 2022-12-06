@@ -72,7 +72,7 @@ class CollapseSettings(Settings):
                                               "carrying capacity",
                                               "cascading failure",
                                               "clathrate",
-                                              "collapse",
+                                              "collaps",
                                               "depopulation",
                                               "energy balance",
                                               "eroei",
