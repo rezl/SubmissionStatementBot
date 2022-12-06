@@ -428,7 +428,7 @@ class Janitor:
             elif comment.score < removal_score:
                 self.remove_on_topic(settings, comment, f"Removed {comment_id} due to low score: {str(comment.score)}")
             elif comment.submission.approved:
-                self.remove_on_topic(settings, comment, "Removed {comment_id} due to approved post")
+                self.remove_on_topic(settings, comment, f"Removed {comment_id} due to approved post")
             elif comment.created_utc < self.get_adjusted_utc_timestamp(60 * 24):
                 print(f"Not monitoring {comment_id} anymore, over 1 day old and has [{str(comment.score)}] score")
                 self.monitored_ss_replies.remove(comment_id)
