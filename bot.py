@@ -84,8 +84,8 @@ class Post:
         # use "ss" comment, otherwise longest
         submission_statement = ss_candidates[0]
         for candidate in ss_candidates:
-            text = candidate.body.lower().strip().split()
-            if ("submission" in text and "statement" in text) or ("ss" in text):
+            text = candidate.body.lower()
+            if ("submission statement" in text) or (" ss " in text):
                 submission_statement = candidate
                 break
             if len(candidate.body) > len(submission_statement.body):
