@@ -1,16 +1,14 @@
-import asyncio
 import calendar
 import traceback
 from threading import Thread
-
-import discord as discord
-from discord.ext import commands
 
 import config
 from datetime import datetime, timedelta
 from enum import Enum
 import os
 import praw
+
+from discord_client import DiscordClient
 from settings import *
 import time
 
@@ -179,9 +177,8 @@ def ss_final_reminder(settings, post, submission_statement, submission_statement
 
 
 class Janitor:
-    def __init__(self, discord_client, client_id, client_secret, bot_username, bot_password, subreddits):
+    def __init__(self, discord_client, client_id, client_secret, bot_username, bot_password, subreddit_names):
         self.discord_client = discord_client
-        subreddit_names = [subreddit.strip() for subreddit in subreddits.split(",")]
 
         self.reddit = praw.Reddit(
             client_id=client_id,
@@ -458,54 +455,29 @@ def get_subreddit_settings(subreddit_name):
         return Settings()
 
 
-class DiscordClient(commands.Bot):
-    def __init__(self, guild_name, bot_channel):
-        super().__init__('!', intents=discord.Intents.all())
-        self.guild_name = guild_name
-        self.bot_channel = bot_channel
-        self.guild = None
-        self.channel = None
-        self.is_ready = False
-
-    async def on_ready(self):
-        print(f'{self.user} has connected to Discord!')
-        self.guild = discord.utils.get(self.guilds, name=self.guild_name)
-        self.channel = discord.utils.get(self.guild.channels, name=self.bot_channel)
-        self.is_ready = True
-        print(
-            f'{self.user} is connected to the following guild:\n'
-            f'{self.guild.name}(id: {self.guild.id})'
-        )
-
-    def send_msg(self, message):
-        full_message = f"StatementBot script has had an exception. This can normally be ignored, " \
-                       f"but if it's occurring frequently, may indicate a script error.\n{message}"
-        if self.channel:
-            asyncio.run_coroutine_threadsafe(self.channel.send(full_message), self.loop)
-
-
 def run_forever():
     # get config from env vars if set, otherwise from config file
     client_id = os.environ.get("CLIENT_ID", config.CLIENT_ID)
     client_secret = os.environ.get("CLIENT_SECRET", config.CLIENT_SECRET)
     bot_username = os.environ.get("BOT_USERNAME", config.BOT_USERNAME)
     bot_password = os.environ.get("BOT_PASSWORD", config.BOT_PASSWORD)
-    subreddits = os.environ.get("SUBREDDITS", config.SUBREDDITS)
     discord_token = os.environ.get("DISCORD_TOKEN", config.DISCORD_TOKEN)
-    guild_name = os.environ.get("DISCORD_GUILD", config.DISCORD_GUILD)
-    guild_channel = os.environ.get("DISCORD_CHANNEL", config.DISCORD_CHANNEL)
+    discord_error_guild_name = os.environ.get("DISCORD_ERROR_GUILD", config.DISCORD_ERROR_GUILD)
+    discord_error_channel_name = os.environ.get("DISCORD_ERROR_CHANNEL", config.DISCORD_ERROR_CHANNEL)
+    subreddits_config = os.environ.get("SUBREDDITS", config.SUBREDDITS)
+    subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(",")]
+    print("CONFIG: subreddit_names=" + str(subreddit_names))
 
-    print("CONFIG: subreddit_names=" + str(subreddits))
+    discord_client = DiscordClient(discord_error_guild_name, discord_error_channel_name)
+    discord_client.add_commands()
+    Thread(target=discord_client.run, args=(discord_token,)).start()
 
-    client = DiscordClient(guild_name, guild_channel)
-    Thread(target=client.run, args=(discord_token,)).start()
-
-    while not client.is_ready:
+    while not discord_client.is_ready:
         time.sleep(1)
 
     while True:
         try:
-            janitor = Janitor(client, client_id, client_secret, bot_username, bot_password, subreddits)
+            janitor = Janitor(discord_client, client_id, client_secret, bot_username, bot_password, subreddit_names)
             while True:
                 for subreddit_name in janitor.subreddit_names:
                     try:
@@ -519,12 +491,12 @@ def run_forever():
                         janitor.handle_monitored_ss_replies(settings)
                     except Exception as e:
                         message = f"Exception when handling all posts: {e}\n```{traceback.format_exc()}```"
-                        client.send_msg(message)
+                        discord_client.send_error_msg(message)
                         print(message)
                 time.sleep(Settings.post_check_frequency_mins * 60)
         except Exception as e:
             message = f"Exception in main processing: {e}\n```{traceback.format_exc()}```"
-            client.send_msg(message)
+            discord_client.send_error_msg(message)
             print(message)
             time.sleep(Settings.post_check_frequency_mins * 60)
 

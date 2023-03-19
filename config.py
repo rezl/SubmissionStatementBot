@@ -1,9 +1,13 @@
+# Reddit
 BOT_USERNAME = 'ReallyCoolBot'
 BOT_PASSWORD = 'password'
 CLIENT_ID = 'asdfasdfasdf'
 CLIENT_SECRET = 'asdfasdfasdf'
-SUBREDDIT = 'SomeSubreddit'
-SUBREDDITS = 'SomeSubreddit,SomeOtherSubreddit'
+
+# Discord
 DISCORD_TOKEN = 'asdfasdfasdfY'
-DISCORD_GUILD = 'SomeDiscord'
-DISCORD_CHANNEL = 'SomeDiscordChannel'
+DISCORD_ERROR_GUILD = 'SomeDiscord'
+DISCORD_ERROR_CHANNEL = 'SomeDiscordChannel'
+
+# Bot
+SUBREDDITS = 'SomeSubreddit,SomeOtherSubreddit'
