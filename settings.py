@@ -1,3 +1,6 @@
+import re
+
+
 class Settings:
     # set to True to prevent any bot actions (report, remove, comments)
     is_dry_run = False
@@ -30,7 +33,7 @@ class Settings:
                          "meaning post text or a comment on your own post that provides context for the link. "
                          "If you still wish to share your post you must resubmit your link "
                          "accompanied by a submission statement of at least "
-                         "" + str(submission_statement_minimum_char_length) + "characters. "
+                         f"{str(submission_statement_minimum_char_length)} characters. "
                          "\n\n"
                          "This is a bot. Replies will not receive responses. "
                          "Please message the moderators if you feel this was an error.")
@@ -87,7 +90,7 @@ class CollapseSettings(Settings):
                                               "finite",
                                               "geoengineering",
                                               "global",
-                                              "growth", # infinite growth, limits of growth, etc
+                                              "growth",  # infinite growth, limits of growth, etc
                                               "heuristic",
                                               "humanity",
                                               "industrial",
@@ -113,3 +116,19 @@ class CollapseSettings(Settings):
     submission_statement_on_topic_response = "collapse"
     submission_statement_on_topic_check_downvotes = True
     submission_statement_on_topic_removal_score = -3
+
+
+class SettingsFactory:
+    settings_classes = {
+        'collapse': CollapseSettings,
+        'ufos': Settings,
+    }
+
+    @staticmethod
+    def get_settings(subreddit_name):
+        # ensure only contains valid characters
+        if not re.match(r'^\w+$', subreddit_name):
+            raise ValueError("subreddit_name contains invalid characters")
+
+        settings_class = SettingsFactory.settings_classes.get(subreddit_name.lower(), Settings)
+        return settings_class()

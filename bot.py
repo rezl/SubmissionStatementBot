@@ -447,16 +447,6 @@ class Janitor:
             monitored_ss_replies.remove(bot_comment.id)
 
 
-def get_subreddit_settings(subreddit_name):
-    # use <SubredditName>Settings if exists, default to Settings
-    settings_name = subreddit_name + "Settings"
-    try:
-        constructor = globals()[settings_name]
-        return constructor()
-    except KeyError:
-        return Settings()
-
-
 def run_forever():
     # get config from env vars if set, otherwise from config file
     client_id = os.environ.get("CLIENT_ID", config.CLIENT_ID)
@@ -490,7 +480,7 @@ def run_forever():
 
             subreddit_trackers = list()
             for subreddit_name in subreddit_names:
-                settings = get_subreddit_settings(subreddit_name)
+                settings = SettingsFactory.get_settings(subreddit_name)
                 print(f"Creating Subreddit: {subreddit_name} with {type(settings).__name__} settings")
                 subreddit_tracker = reddit.subreddit(subreddit_name)
                 subreddit_tracker = SubredditTracker(subreddit_tracker, settings)
