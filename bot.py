@@ -39,18 +39,6 @@ class Post:
             return True
         return False
 
-    def contains_report(self, report_substring, check_dismissed_reports):
-        for report in self.submission.mod_reports:
-            if any(report_substring in r for r in report):
-                return True
-        if check_dismissed_reports:
-            # posts which haven't had dismissed reports don't contain the attr
-            if hasattr(self.submission, "mod_reports_dismissed"):
-                for report in self.submission.mod_reports_dismissed:
-                    if report_substring in report[0]:
-                        return True
-        return False
-
     def contains_comment(self, text, include_deleted=False):
         for comment in self.submission.comments:
             if not include_deleted:
@@ -89,17 +77,6 @@ class Post:
 
     def is_removed(self):
         return self.submission.removed
-
-    def report_post(self, reason):
-        print(f"\tReporting post, reason: {reason}")
-        if Settings.is_dry_run:
-            print("\tDRY RUN!!!")
-            return
-        if self.contains_report(reason, True):
-            print("\tPost has already been reported")
-            return
-        self.submission.report(reason)
-        time.sleep(5)
 
     def reply_to_post(self, reason, pin=True, lock=False):
         print(f"\tReplying to post, reason: {reason}")
@@ -280,9 +257,11 @@ class Janitor:
         if submission_statement_state == SubmissionStatementState.MISSING:
             print("\tPost does NOT have submission statement")
             if post.is_moderator_approved():
-                post.report_post("Moderator approved post, but there is no SS. Please double check.")
+                self.reddit_handler.report_post(post,
+                                                "Moderator approved post, but there is no SS. Please double check.")
             elif settings.report_submission_statement_timeout:
-                post.report_post("Post has no submission statement after timeout. Please take a look.")
+                self.reddit_handler.report_post(post,
+                                                "Post has no submission statement after timeout. Please take a look.")
             else:
                 post.remove_post(settings.ss_removal_reason, "No submission statement")
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
@@ -291,9 +270,11 @@ class Janitor:
                 post.reply_to_post(settings.submission_statement_pin_text(submission_statement),
                                    pin=True, lock=True)
             if post.is_moderator_approved():
-                post.report_post("Moderator approved post, but SS is too short. Please double check.")
+                self.reddit_handler.report_post(post,
+                                                "Moderator approved post, but SS is too short. Please double check.")
             elif settings.report_submission_statement_insufficient_length:
-                post.report_post("Submission statement is too short")
+                self.reddit_handler.report_post(post,
+                                                "Submission statement is too short")
             else:
                 post.remove_post(settings.ss_removal_reason, "Submission statement is too short")
         elif submission_statement_state == SubmissionStatementState.VALID:
@@ -397,7 +378,7 @@ class Janitor:
             if settings.report_stale_unmoderated_posts:
                 rounded_time = str(round(settings.stale_post_check_threshold_mins / 60, 2))
                 reason = f"This post is over {rounded_time} hours old and has not been moderated. Please take a look!"
-                post.report_post(reason)
+                self.reddit_handler.report_post(post, reason)
             else:
                 print(f"Not reporting stale unmoderated post: {post.submission.title}\n\t{post.submission.permalink}")
         subreddit_tracker.time_unmoderated_last_checked = now
