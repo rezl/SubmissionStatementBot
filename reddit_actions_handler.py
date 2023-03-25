@@ -34,7 +34,7 @@ class RedditActionsHandler:
         if lock:
             self.reddit_call(lambda: reply_comment.mod.lock(), reddit_throttle_secs=1)
         if ignore_reports:
-            reply_comment.mod.ignore_reports()
+            self.reddit_call(lambda: reply_comment.mod.ignore_reports(), reddit_throttle_secs=1)
         return reply_comment
 
     def reply_to_comment(self, original_comment, reason, lock=False, ignore_reports=False):
