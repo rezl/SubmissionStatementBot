@@ -15,9 +15,9 @@ import time
 from subreddit_tracker import SubredditTracker
 
 
-def remove_comment(removal_reason, comment, settings):
+def remove_comment(removal_reason, comment):
     print(f"\tRemoving comment, reason: {removal_reason}")
-    if settings.is_dry_run:
+    if Settings.is_dry_run:
         print("\tDRY RUN!!!")
         return
     comment.mod.remove(mod_note=removal_reason)
@@ -98,9 +98,9 @@ class Post:
     def is_removed(self):
         return self.submission.removed
 
-    def report_post(self, settings, reason):
+    def report_post(self, reason):
         print(f"\tReporting post, reason: {reason}")
-        if settings.is_dry_run:
+        if Settings.is_dry_run:
             print("\tDRY RUN!!!")
             return
         if self.contains_report(reason, True):
@@ -109,9 +109,9 @@ class Post:
         self.submission.report(reason)
         time.sleep(5)
 
-    def reply_to_post(self, settings, reason, pin=True, lock=False):
+    def reply_to_post(self, reason, pin=True, lock=False):
         print(f"\tReplying to post, reason: {reason}")
-        if settings.is_dry_run:
+        if Settings.is_dry_run:
             print("\tDRY RUN!!!")
             return
         comment = self.submission.reply(reason)
@@ -121,9 +121,9 @@ class Post:
         time.sleep(5)
 
     @staticmethod
-    def reply_to_comment(settings, original_comment, reason, lock=False, ignore_reports=False):
+    def reply_to_comment(original_comment, reason, lock=False, ignore_reports=False):
         print(f"\tReplying to comment, reason: {reason}")
-        if settings.is_dry_run:
+        if Settings.is_dry_run:
             print("\tDRY RUN!!!")
             return None
         reply_comment = original_comment.reply(reason)
@@ -135,9 +135,9 @@ class Post:
         time.sleep(5)
         return reply_comment
 
-    def remove_post(self, settings, reason, note):
+    def remove_post(self, reason, note):
         print(f"\tRemoving post, reason: {reason}")
-        if settings.is_dry_run:
+        if Settings.is_dry_run:
             print("\tDRY RUN!!!")
             return
         self.submission.mod.remove(spam=False, mod_note=note)
@@ -175,7 +175,7 @@ def ss_final_reminder(settings, post, submission_statement, submission_statement
                         f"{settings.submission_statement_rule_description}.\n\n" \
                         "Please message the moderators if you feel this was an error. " \
                         "Responses to this comment are not monitored."
-    post.reply_to_post(settings, reminder_response, pin=False, lock=True)
+    post.reply_to_post(reminder_response, pin=False, lock=True)
 
 
 class Janitor:
@@ -237,7 +237,7 @@ class Janitor:
             return
 
         if not post.submitted_during_casual_hours():
-            post.remove_post(settings, settings.casual_hour_removal_reason, "low effort flair")
+            post.remove_post(settings.casual_hour_removal_reason, "low effort flair")
 
     def handle_submission_statement(self, subreddit_tracker, post):
         settings = subreddit_tracker.settings
@@ -261,7 +261,7 @@ class Janitor:
                        "Please message the moderators if you feel this was an error. " \
                        "Responses to this comment are not monitored."
                 if not post.contains_comment(text, include_deleted=True):
-                    post.reply_to_post(settings, text, pin=False, lock=True)
+                    post.reply_to_post(text, pin=False, lock=True)
             else:
                 print("\tPost has valid post-based submission statement, not doing anything")
                 return
@@ -282,31 +282,31 @@ class Janitor:
             return
         print("\tTime has expired")
 
-        self.remove_bot_comments(settings, post)
+        self.remove_bot_comments(post)
 
         if submission_statement_state == SubmissionStatementState.MISSING:
             print("\tPost does NOT have submission statement")
             if post.is_moderator_approved():
-                post.report_post(settings, "Moderator approved post, but there is no SS. Please double check.")
+                post.report_post("Moderator approved post, but there is no SS. Please double check.")
             elif settings.report_submission_statement_timeout:
-                post.report_post(settings, "Post has no submission statement after timeout. Please take a look.")
+                post.report_post("Post has no submission statement after timeout. Please take a look.")
             else:
-                post.remove_post(settings, settings.ss_removal_reason, "No submission statement")
+                post.remove_post(settings.ss_removal_reason, "No submission statement")
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
             print("\tPost has too short submission statement")
             if settings.submission_statement_pin:
-                post.reply_to_post(settings, settings.submission_statement_pin_text(submission_statement),
+                post.reply_to_post(settings.submission_statement_pin_text(submission_statement),
                                    pin=True, lock=True)
             if post.is_moderator_approved():
-                post.report_post(settings, "Moderator approved post, but SS is too short. Please double check.")
+                post.report_post("Moderator approved post, but SS is too short. Please double check.")
             elif settings.report_submission_statement_insufficient_length:
-                post.report_post(settings, "Submission statement is too short")
+                post.report_post("Submission statement is too short")
             else:
-                post.remove_post(settings, settings.ss_removal_reason, "Submission statement is too short")
+                post.remove_post(settings.ss_removal_reason, "Submission statement is too short")
         elif submission_statement_state == SubmissionStatementState.VALID:
             print("\tPost has valid submission statement")
             if settings.submission_statement_pin:
-                post.reply_to_post(settings, settings.submission_statement_pin_text(submission_statement),
+                post.reply_to_post(settings.submission_statement_pin_text(submission_statement),
                                    pin=True, lock=True)
         else:
             raise RuntimeError(f"\tUnsupported submission_statement_state: {submission_statement_state}")
@@ -341,15 +341,15 @@ class Janitor:
         # remove bot comment if post is approved or has been edited to contain a keyword
         removal_score = settings.submission_statement_on_topic_removal_score
         if post.submission.approved:
-            Janitor.remove_on_topic(monitored_ss_replies, settings, bot_comment,
+            Janitor.remove_on_topic(monitored_ss_replies, bot_comment,
                                     "Removed ss reply due to approved post")
             return
         elif contains_on_topic_keyword:
-            Janitor.remove_on_topic(monitored_ss_replies, settings, bot_comment,
+            Janitor.remove_on_topic(monitored_ss_replies, bot_comment,
                                     "Removed ss reply due to edited ss contains keyword")
             return
         elif bot_comment and bot_comment.score < removal_score:
-            Janitor.remove_on_topic(monitored_ss_replies, settings, bot_comment,
+            Janitor.remove_on_topic(monitored_ss_replies, bot_comment,
                                     f"Removed ss reply due to low score: {str(bot_comment.score)}")
             return
 
@@ -370,7 +370,7 @@ class Janitor:
                    f"\n\n" \
                    f"This is a bot. Replies will not receive responses. " \
                    f"Please message the moderators if you feel this was an error."
-        comment = post.reply_to_comment(settings, submission_statement, response, lock=True, ignore_reports=True)
+        comment = post.reply_to_comment(submission_statement, response, lock=True, ignore_reports=True)
         if comment is not None and settings.submission_statement_on_topic_check_downvotes:
             monitored_ss_replies.append(comment.id)
 
@@ -405,7 +405,7 @@ class Janitor:
             if settings.report_stale_unmoderated_posts:
                 rounded_time = str(round(settings.stale_post_check_threshold_mins / 60, 2))
                 reason = f"This post is over {rounded_time} hours old and has not been moderated. Please take a look!"
-                post.report_post(settings, reason)
+                post.report_post(reason)
             else:
                 print(f"Not reporting stale unmoderated post: {post.submission.title}\n\t{post.submission.permalink}")
         subreddit_tracker.time_unmoderated_last_checked = now
@@ -425,28 +425,28 @@ class Janitor:
                 print(f"Not monitoring {comment_id} anymore, comment or post is removed/deleted")
                 subreddit_tracker.monitored_ss_replies.remove(comment_id)
             elif comment.score < removal_score:
-                Janitor.remove_on_topic(subreddit_tracker.monitored_ss_replies, settings, comment,
+                Janitor.remove_on_topic(subreddit_tracker.monitored_ss_replies, comment,
                                         f"Removed {comment_id} due to low score: {str(comment.score)}")
             elif comment.submission.approved:
-                Janitor.remove_on_topic(subreddit_tracker.monitored_ss_replies, settings, comment,
+                Janitor.remove_on_topic(subreddit_tracker.monitored_ss_replies, comment,
                                         f"Removed {comment_id} due to approved post")
             elif comment.created_utc < self.get_adjusted_utc_timestamp(60 * 24):
                 print(f"Not monitoring {comment_id} anymore, over 1 day old and has [{str(comment.score)}] score")
                 subreddit_tracker.monitored_ss_replies.remove(comment_id)
 
-    def remove_bot_comments(self, settings, post):
+    def remove_bot_comments(self, post):
         for comment in post.submission.comments:
             # deleted comment
             if isinstance(comment.author, type(None)) or comment.removed:
                 continue
             if comment.author == self.bot_username:
                 removal_reason = "Cleaned up non-submission statement comment"
-                remove_comment(removal_reason, comment, settings)
+                remove_comment(removal_reason, comment)
 
     @staticmethod
-    def remove_on_topic(monitored_ss_replies, settings, bot_comment, reason):
+    def remove_on_topic(monitored_ss_replies, bot_comment, reason):
         if bot_comment in monitored_ss_replies:
-            remove_comment(reason, bot_comment, settings)
+            remove_comment(reason, bot_comment)
             monitored_ss_replies.remove(bot_comment.id)
 
 
