@@ -104,16 +104,6 @@ class Post:
         time.sleep(5)
         return reply_comment
 
-    def remove_post(self, reason, note):
-        print(f"\tRemoving post, reason: {reason}")
-        if Settings.is_dry_run:
-            print("\tDRY RUN!!!")
-            return
-        self.submission.mod.remove(spam=False, mod_note=note)
-        removal_comment = self.submission.reply(reason)
-        removal_comment.mod.distinguish(sticky=True)
-        time.sleep(5)
-
 
 class SubmissionStatementState(str, Enum):
     MISSING = "MISSING"
@@ -198,8 +188,7 @@ class Janitor:
         else:
             return SubmissionStatementState.VALID
 
-    @staticmethod
-    def handle_low_effort(settings, post):
+    def handle_low_effort(self, settings, post):
         if post.submission.approved:
             return
 
@@ -207,7 +196,7 @@ class Janitor:
             return
 
         if not post.submitted_during_casual_hours():
-            post.remove_post(settings.casual_hour_removal_reason, "low effort flair")
+            self.reddit_handler.remove_post(post, settings.casual_hour_removal_reason, "low effort flair")
 
     def handle_submission_statement(self, subreddit_tracker, post):
         settings = subreddit_tracker.settings
@@ -263,7 +252,7 @@ class Janitor:
                 self.reddit_handler.report_post(post,
                                                 "Post has no submission statement after timeout. Please take a look.")
             else:
-                post.remove_post(settings.ss_removal_reason, "No submission statement")
+                self.reddit_handler.remove_post(post, settings.ss_removal_reason, "No submission statement")
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
             print("\tPost has too short submission statement")
             if settings.submission_statement_pin:
@@ -276,7 +265,7 @@ class Janitor:
                 self.reddit_handler.report_post(post,
                                                 "Submission statement is too short")
             else:
-                post.remove_post(settings.ss_removal_reason, "Submission statement is too short")
+                self.reddit_handler.remove_post(post, settings.ss_removal_reason, "Submission statement is too short")
         elif submission_statement_state == SubmissionStatementState.VALID:
             print("\tPost has valid submission statement")
             if settings.submission_statement_pin:
