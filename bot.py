@@ -78,17 +78,6 @@ class Post:
     def is_removed(self):
         return self.submission.removed
 
-    def reply_to_post(self, reason, pin=True, lock=False):
-        print(f"\tReplying to post, reason: {reason}")
-        if Settings.is_dry_run:
-            print("\tDRY RUN!!!")
-            return
-        comment = self.submission.reply(reason)
-        comment.mod.distinguish(sticky=pin)
-        if lock:
-            comment.mod.lock()
-        time.sleep(5)
-
     @staticmethod
     def reply_to_comment(original_comment, reason, lock=False, ignore_reports=False):
         print(f"\tReplying to comment, reason: {reason}")
@@ -109,32 +98,6 @@ class SubmissionStatementState(str, Enum):
     MISSING = "MISSING"
     TOO_SHORT = "TOO_SHORT"
     VALID = "VALID"
-
-
-def ss_final_reminder(settings, post, submission_statement, submission_statement_state,
-                      reminder_timeout_mins, timeout_mins):
-    if not settings.submission_statement_final_reminder:
-        return
-    # only applies to posts that are between the time to remind and time to post
-    if not post.is_post_old(reminder_timeout_mins) or post.is_post_old(timeout_mins):
-        return
-    if submission_statement_state == SubmissionStatementState.VALID:
-        return
-    reminder_identifier = "As a final reminder, your post must include a valid submission statement"
-    if post.contains_comment(reminder_identifier):
-        return
-
-    # one final reminder to post a ss
-    reminder_detail = "Your post is missing a submission statement." \
-        if submission_statement_state == SubmissionStatementState.MISSING \
-        else f"The submission statement I identified is too short ({len(submission_statement.body)}" \
-             f" chars):\n> {submission_statement.body} \n\n" \
-             f"https://old.reddit.com{submission_statement.permalink}"
-    reminder_response = f"{reminder_identifier} within {timeout_mins} min. {reminder_detail}\n\n" \
-                        f"{settings.submission_statement_rule_description}.\n\n" \
-                        "Please message the moderators if you feel this was an error. " \
-                        "Responses to this comment are not monitored."
-    post.reply_to_post(reminder_response, pin=False, lock=True)
 
 
 class Janitor:
@@ -220,7 +183,7 @@ class Janitor:
                        "Please message the moderators if you feel this was an error. " \
                        "Responses to this comment are not monitored."
                 if not post.contains_comment(text, include_deleted=True):
-                    post.reply_to_post(text, pin=False, lock=True)
+                    self.reddit_handler.reply_to_post(post, text, pin=False, lock=True)
             else:
                 print("\tPost has valid post-based submission statement, not doing anything")
                 return
@@ -233,7 +196,8 @@ class Janitor:
 
         self.ss_on_topic_check(subreddit_tracker.monitored_ss_replies, settings, post,
                                submission_statement, submission_statement_state, timeout_mins)
-        ss_final_reminder(settings, post, submission_statement, submission_statement_state, reminder_mins, timeout_mins)
+        self.ss_final_reminder(settings, post, submission_statement, submission_statement_state,
+                               reminder_mins, timeout_mins)
 
         # users are given time to post a submission statement
         if not post.is_post_old(timeout_mins):
@@ -256,8 +220,8 @@ class Janitor:
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
             print("\tPost has too short submission statement")
             if settings.submission_statement_pin:
-                post.reply_to_post(settings.submission_statement_pin_text(submission_statement),
-                                   pin=True, lock=True)
+                self.reddit_handler.reply_to_post(post, settings.submission_statement_pin_text(submission_statement),
+                                                  pin=True, lock=True)
             if post.is_moderator_approved():
                 self.reddit_handler.report_post(post,
                                                 "Moderator approved post, but SS is too short. Please double check.")
@@ -269,8 +233,8 @@ class Janitor:
         elif submission_statement_state == SubmissionStatementState.VALID:
             print("\tPost has valid submission statement")
             if settings.submission_statement_pin:
-                post.reply_to_post(settings.submission_statement_pin_text(submission_statement),
-                                   pin=True, lock=True)
+                self.reddit_handler.reply_to_post(post, settings.submission_statement_pin_text(submission_statement),
+                                                  pin=True, lock=True)
         else:
             raise RuntimeError(f"\tUnsupported submission_statement_state: {submission_statement_state}")
 
@@ -335,6 +299,31 @@ class Janitor:
         comment = post.reply_to_comment(submission_statement, response, lock=True, ignore_reports=True)
         if comment is not None and settings.submission_statement_on_topic_check_downvotes:
             monitored_ss_replies.append(comment.id)
+
+    def ss_final_reminder(self, settings, post, submission_statement, submission_statement_state,
+                          reminder_timeout_mins, timeout_mins):
+        if not settings.submission_statement_final_reminder:
+            return
+        # only applies to posts that are between the time to remind and time to post
+        if not post.is_post_old(reminder_timeout_mins) or post.is_post_old(timeout_mins):
+            return
+        if submission_statement_state == SubmissionStatementState.VALID:
+            return
+        reminder_identifier = "As a final reminder, your post must include a valid submission statement"
+        if post.contains_comment(reminder_identifier):
+            return
+
+        # one final reminder to post a ss
+        reminder_detail = "Your post is missing a submission statement." \
+            if submission_statement_state == SubmissionStatementState.MISSING \
+            else f"The submission statement I identified is too short ({len(submission_statement.body)}" \
+                 f" chars):\n> {submission_statement.body} \n\n" \
+                 f"https://old.reddit.com{submission_statement.permalink}"
+        reminder_response = f"{reminder_identifier} within {timeout_mins} min. {reminder_detail}\n\n" \
+                            f"{settings.submission_statement_rule_description}.\n\n" \
+                            "Please message the moderators if you feel this was an error. " \
+                            "Responses to this comment are not monitored."
+        self.reddit_handler.reply_to_post(post, reminder_response, pin=False, lock=True)
 
     def handle_posts(self, subreddit_tracker):
         settings = subreddit_tracker.settings
