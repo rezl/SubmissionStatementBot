@@ -230,6 +230,9 @@ class Janitor:
 
     @staticmethod
     def handle_low_effort(settings, post):
+        if post.submission.approved:
+            return
+
         if not post.has_low_effort_flair(settings):
             return
 
@@ -482,8 +485,8 @@ def run_forever():
             for subreddit_name in subreddit_names:
                 settings = SettingsFactory.get_settings(subreddit_name)
                 print(f"Creating Subreddit: {subreddit_name} with {type(settings).__name__} settings")
-                subreddit_tracker = reddit.subreddit(subreddit_name)
-                subreddit_tracker = SubredditTracker(subreddit_tracker, settings)
+                subreddit = reddit.subreddit(subreddit_name)
+                subreddit_tracker = SubredditTracker(subreddit, settings)
                 subreddit_trackers.append(subreddit_tracker)
 
             janitor = Janitor(discord_client, bot_username, reddit)
