@@ -2,14 +2,15 @@ import re
 
 
 class Settings:
+    # is_dry_run and post_check_frequency_mins should not be overriden
     # set to True to prevent any bot actions (report, remove, comments)
     is_dry_run = False
+    post_check_frequency_mins = 5
 
     report_submission_statement_insufficient_length = False
     report_stale_unmoderated_posts = False
     report_submission_statement_timeout = False
 
-    post_check_frequency_mins = 5
     post_check_threshold_mins = 2 * 60
     consecutive_old_posts = 5
     stale_post_check_frequency_mins = 60
