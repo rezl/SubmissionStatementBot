@@ -9,19 +9,11 @@ import os
 import praw
 
 from discord_client import DiscordClient
+from reddit_actions_handler import RedditActionsHandler
 from settings import *
 import time
 
 from subreddit_tracker import SubredditTracker
-
-
-def remove_comment(removal_reason, comment):
-    print(f"\tRemoving comment, reason: {removal_reason}")
-    if Settings.is_dry_run:
-        print("\tDRY RUN!!!")
-        return
-    comment.mod.remove(mod_note=removal_reason)
-    time.sleep(5)
 
 
 class Post:
@@ -179,10 +171,11 @@ def ss_final_reminder(settings, post, submission_statement, submission_statement
 
 
 class Janitor:
-    def __init__(self, discord_client, bot_username, reddit):
+    def __init__(self, discord_client, bot_username, reddit, reddit_handler):
         self.discord_client = discord_client
         self.bot_username = bot_username
         self.reddit = reddit
+        self.reddit_handler = reddit_handler
 
     @staticmethod
     def get_adjusted_utc_timestamp(time_difference_mins):
@@ -272,8 +265,8 @@ class Janitor:
         timeout_mins = settings.submission_statement_time_limit_mins
         reminder_mins = timeout_mins / 2
 
-        Janitor.ss_on_topic_check(subreddit_tracker.monitored_ss_replies, settings, post,
-                                  submission_statement, submission_statement_state, timeout_mins)
+        self.ss_on_topic_check(subreddit_tracker.monitored_ss_replies, settings, post,
+                               submission_statement, submission_statement_state, timeout_mins)
         ss_final_reminder(settings, post, submission_statement, submission_statement_state, reminder_mins, timeout_mins)
 
         # users are given time to post a submission statement
@@ -311,8 +304,7 @@ class Janitor:
         else:
             raise RuntimeError(f"\tUnsupported submission_statement_state: {submission_statement_state}")
 
-    @staticmethod
-    def ss_on_topic_check(monitored_ss_replies, settings, post, submission_statement, submission_statement_state,
+    def ss_on_topic_check(self, monitored_ss_replies, settings, post, submission_statement, submission_statement_state,
                           timeout_mins):
         # not enabled, or malformed (enabled, but missing keywords or response)
         if not settings.submission_statement_on_topic_reminder or \
@@ -341,16 +333,16 @@ class Janitor:
         # remove bot comment if post is approved or has been edited to contain a keyword
         removal_score = settings.submission_statement_on_topic_removal_score
         if post.submission.approved:
-            Janitor.remove_on_topic(monitored_ss_replies, bot_comment,
-                                    "Removed ss reply due to approved post")
+            self.remove_on_topic(monitored_ss_replies, bot_comment,
+                                 "Removed ss reply due to approved post")
             return
         elif contains_on_topic_keyword:
-            Janitor.remove_on_topic(monitored_ss_replies, bot_comment,
-                                    "Removed ss reply due to edited ss contains keyword")
+            self.remove_on_topic(monitored_ss_replies, bot_comment,
+                                 "Removed ss reply due to edited ss contains keyword")
             return
         elif bot_comment and bot_comment.score < removal_score:
-            Janitor.remove_on_topic(monitored_ss_replies, bot_comment,
-                                    f"Removed ss reply due to low score: {str(bot_comment.score)}")
+            self.remove_on_topic(monitored_ss_replies, bot_comment,
+                                 f"Removed ss reply due to low score: {str(bot_comment.score)}")
             return
 
         # bot comment exists, or ss is already on topic
@@ -425,11 +417,11 @@ class Janitor:
                 print(f"Not monitoring {comment_id} anymore, comment or post is removed/deleted")
                 subreddit_tracker.monitored_ss_replies.remove(comment_id)
             elif comment.score < removal_score:
-                Janitor.remove_on_topic(subreddit_tracker.monitored_ss_replies, comment,
-                                        f"Removed {comment_id} due to low score: {str(comment.score)}")
+                self.remove_on_topic(subreddit_tracker.monitored_ss_replies, comment,
+                                     f"Removed {comment_id} due to low score: {str(comment.score)}")
             elif comment.submission.approved:
-                Janitor.remove_on_topic(subreddit_tracker.monitored_ss_replies, comment,
-                                        f"Removed {comment_id} due to approved post")
+                self.remove_on_topic(subreddit_tracker.monitored_ss_replies, comment,
+                                     f"Removed {comment_id} due to approved post")
             elif comment.created_utc < self.get_adjusted_utc_timestamp(60 * 24):
                 print(f"Not monitoring {comment_id} anymore, over 1 day old and has [{str(comment.score)}] score")
                 subreddit_tracker.monitored_ss_replies.remove(comment_id)
@@ -441,12 +433,11 @@ class Janitor:
                 continue
             if comment.author == self.bot_username:
                 removal_reason = "Cleaned up non-submission statement comment"
-                remove_comment(removal_reason, comment)
+                self.reddit_handler.remove_content(removal_reason, comment)
 
-    @staticmethod
-    def remove_on_topic(monitored_ss_replies, bot_comment, reason):
+    def remove_on_topic(self, monitored_ss_replies, bot_comment, reason):
         if bot_comment in monitored_ss_replies:
-            remove_comment(reason, bot_comment)
+            self.reddit_handler.remove_content(reason, bot_comment)
             monitored_ss_replies.remove(bot_comment.id)
 
 
@@ -481,6 +472,8 @@ def run_forever():
                 password=bot_password
             )
 
+            reddit_handler = RedditActionsHandler(reddit, discord_client)
+
             subreddit_trackers = list()
             for subreddit_name in subreddit_names:
                 settings = SettingsFactory.get_settings(subreddit_name)
@@ -489,7 +482,7 @@ def run_forever():
                 subreddit_tracker = SubredditTracker(subreddit, settings)
                 subreddit_trackers.append(subreddit_tracker)
 
-            janitor = Janitor(discord_client, bot_username, reddit)
+            janitor = Janitor(discord_client, bot_username, reddit, reddit_handler)
             while True:
                 for subreddit_tracker in subreddit_trackers:
                     try:
