@@ -78,21 +78,6 @@ class Post:
     def is_removed(self):
         return self.submission.removed
 
-    @staticmethod
-    def reply_to_comment(original_comment, reason, lock=False, ignore_reports=False):
-        print(f"\tReplying to comment, reason: {reason}")
-        if Settings.is_dry_run:
-            print("\tDRY RUN!!!")
-            return None
-        reply_comment = original_comment.reply(reason)
-        reply_comment.mod.distinguish()
-        if ignore_reports:
-            reply_comment.mod.ignore_reports()
-        if lock:
-            reply_comment.mod.lock()
-        time.sleep(5)
-        return reply_comment
-
 
 class SubmissionStatementState(str, Enum):
     MISSING = "MISSING"
@@ -296,7 +281,8 @@ class Janitor:
                    f"\n\n" \
                    f"This is a bot. Replies will not receive responses. " \
                    f"Please message the moderators if you feel this was an error."
-        comment = post.reply_to_comment(submission_statement, response, lock=True, ignore_reports=True)
+        comment = self.reddit_handler.reply_to_comment(post, submission_statement, response,
+                                                       lock=True, ignore_reports=True)
         if comment is not None and settings.submission_statement_on_topic_check_downvotes:
             monitored_ss_replies.append(comment.id)
 

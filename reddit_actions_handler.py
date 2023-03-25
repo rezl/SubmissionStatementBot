@@ -39,7 +39,8 @@ class RedditActionsHandler:
 
     def reply_to_comment(self, original_comment, reason, lock=False, ignore_reports=False):
         print(f"\tReplying to comment, reason: {reason}")
-        reply_comment = self.reply_to_post(original_comment, reason, lock=lock, ignore_reports=ignore_reports)
+        reply_comment = self.reply_to_post(original_comment, reason,
+                                           pin=False, lock=lock, ignore_reports=ignore_reports)
         return reply_comment
 
     def reddit_call(self, callback, reddit_throttle_secs=5):
