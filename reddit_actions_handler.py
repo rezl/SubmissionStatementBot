@@ -15,17 +15,17 @@ class RedditActionsHandler:
         self.last_call_time = 0
 
     def remove_content(self, content, external_removal_reason, internal_removal_reason, reply=True):
-        print(f"\tRemoving post {content}, reason: {internal_removal_reason}")
+        print(f"\tRemoving content {content}, reason: {internal_removal_reason}")
         self.reddit_call(lambda: content.mod.remove(mod_note=internal_removal_reason))
         if reply:
             self.reply_to_content(content, external_removal_reason)
 
     def report_content(self, content, reason):
-        print(f"\tReporting post {content}, reason: {reason}")
+        print(f"\tReporting content {content}, reason: {reason}")
         self.reddit_call(lambda: content.report(reason))
 
     def reply_to_content(self, content, reason, pin=True, lock=False, ignore_reports=False):
-        print(f"\tReplying to post, reason: {reason}")
+        print(f"\tReplying to content, reason: {reason}")
         reply_comment = self.reddit_call(lambda: content.reply(reason))
         self.reddit_call(lambda: reply_comment.mod.distinguish(sticky=pin), reddit_throttle_secs=1)
         if lock:
