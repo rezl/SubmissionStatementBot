@@ -14,33 +14,24 @@ class RedditActionsHandler:
         self.discord_client = discord_client
         self.last_call_time = 0
 
-    def remove_content(self, internal_removal_reason, content):
-        print(f"Removing content, reason: {internal_removal_reason}")
+    def remove_content(self, content, external_removal_reason, internal_removal_reason, reply=True):
+        print(f"\tRemoving post {content}, reason: {internal_removal_reason}")
         self.reddit_call(lambda: content.mod.remove(mod_note=internal_removal_reason))
+        if reply:
+            self.reply_to_content(content, external_removal_reason)
 
-    def remove_post(self, post, external_removal_reason, internal_removal_reason):
-        print(f"\tRemoving post, reason: {internal_removal_reason}")
-        self.remove_content(internal_removal_reason, post.submission)
-        self.reply_to_post(post.submission, external_removal_reason)
+    def report_content(self, content, reason):
+        print(f"\tReporting post {content}, reason: {reason}")
+        self.reddit_call(lambda: content.report(reason))
 
-    def report_post(self, submission, reason):
-        print(f"\tReporting post {submission}, reason: {reason}")
-        self.reddit_call(lambda: submission.report(reason))
-
-    def reply_to_post(self, submission, reason, pin=True, lock=False, ignore_reports=False):
+    def reply_to_content(self, content, reason, pin=True, lock=False, ignore_reports=False):
         print(f"\tReplying to post, reason: {reason}")
-        reply_comment = self.reddit_call(lambda: submission.reply(reason))
+        reply_comment = self.reddit_call(lambda: content.reply(reason))
         self.reddit_call(lambda: reply_comment.mod.distinguish(sticky=pin), reddit_throttle_secs=1)
         if lock:
             self.reddit_call(lambda: reply_comment.mod.lock(), reddit_throttle_secs=1)
         if ignore_reports:
             self.reddit_call(lambda: reply_comment.mod.ignore_reports(), reddit_throttle_secs=1)
-        return reply_comment
-
-    def reply_to_comment(self, original_comment, reason, lock=False, ignore_reports=False):
-        print(f"\tReplying to comment, reason: {reason}")
-        reply_comment = self.reply_to_post(original_comment, reason,
-                                           pin=False, lock=lock, ignore_reports=ignore_reports)
         return reply_comment
 
     def reddit_call(self, callback, reddit_throttle_secs=5):

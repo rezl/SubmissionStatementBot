@@ -144,7 +144,8 @@ class Janitor:
             return
 
         if not post.submitted_during_casual_hours():
-            self.reddit_handler.remove_post(post, settings.casual_hour_removal_reason, "low effort flair")
+            self.reddit_handler.remove_content(post.submission, settings.casual_hour_removal_reason,
+                                               "low effort flair")
 
     def handle_submission_statement(self, subreddit_tracker, post):
         settings = subreddit_tracker.settings
@@ -168,7 +169,7 @@ class Janitor:
                        "Please message the moderators if you feel this was an error. " \
                        "Responses to this comment are not monitored."
                 if not post.contains_comment(text, include_deleted=True):
-                    self.reddit_handler.reply_to_post(post, text, pin=False, lock=True)
+                    self.reddit_handler.reply_to_content(post.submission, text, pin=False, lock=True)
             else:
                 print("\tPost has valid post-based submission statement, not doing anything")
                 return
@@ -195,31 +196,35 @@ class Janitor:
         if submission_statement_state == SubmissionStatementState.MISSING:
             print("\tPost does NOT have submission statement")
             if post.is_moderator_approved():
-                self.reddit_handler.report_post(post,
-                                                "Moderator approved post, but there is no SS. Please double check.")
+                self.reddit_handler.report_content(post.submission,
+                                                   "Moderator approved post, but there is no SS. Please look.")
             elif settings.report_submission_statement_timeout:
-                self.reddit_handler.report_post(post,
-                                                "Post has no submission statement after timeout. Please take a look.")
+                self.reddit_handler.report_content(post.submission,
+                                                   "Post has no submission statement after timeout. Please look.")
             else:
-                self.reddit_handler.remove_post(post, settings.ss_removal_reason, "No submission statement")
+                self.reddit_handler.remove_content(post.submission, settings.ss_removal_reason,
+                                                   "No submission statement")
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
             print("\tPost has too short submission statement")
             if settings.submission_statement_pin:
-                self.reddit_handler.reply_to_post(post, settings.submission_statement_pin_text(submission_statement),
-                                                  pin=True, lock=True)
+                self.reddit_handler.reply_to_content(post.submission,
+                                                     settings.submission_statement_pin_text(submission_statement),
+                                                     pin=True, lock=True)
             if post.is_moderator_approved():
-                self.reddit_handler.report_post(post,
-                                                "Moderator approved post, but SS is too short. Please double check.")
+                self.reddit_handler.report_content(post.submission,
+                                                   "Moderator approved post, but SS is too short. Please double check.")
             elif settings.report_submission_statement_insufficient_length:
-                self.reddit_handler.report_post(post,
-                                                "Submission statement is too short")
+                self.reddit_handler.report_content(post.submission,
+                                                   "Submission statement is too short")
             else:
-                self.reddit_handler.remove_post(post, settings.ss_removal_reason, "Submission statement is too short")
+                self.reddit_handler.remove_content(post.submission, settings.ss_removal_reason,
+                                                   "Submission statement is too short")
         elif submission_statement_state == SubmissionStatementState.VALID:
             print("\tPost has valid submission statement")
             if settings.submission_statement_pin:
-                self.reddit_handler.reply_to_post(post, settings.submission_statement_pin_text(submission_statement),
-                                                  pin=True, lock=True)
+                self.reddit_handler.reply_to_content(post.submission,
+                                                     settings.submission_statement_pin_text(submission_statement),
+                                                     pin=True, lock=True)
         else:
             raise RuntimeError(f"\tUnsupported submission_statement_state: {submission_statement_state}")
 
@@ -281,8 +286,8 @@ class Janitor:
                    f"\n\n" \
                    f"This is a bot. Replies will not receive responses. " \
                    f"Please message the moderators if you feel this was an error."
-        comment = self.reddit_handler.reply_to_comment(post, submission_statement, response,
-                                                       lock=True, ignore_reports=True)
+        comment = self.reddit_handler.reply_to_content(submission_statement, response,
+                                                       pin=False, lock=True, ignore_reports=True)
         if comment is not None and settings.submission_statement_on_topic_check_downvotes:
             monitored_ss_replies.append(comment.id)
 
@@ -309,7 +314,7 @@ class Janitor:
                             f"{settings.submission_statement_rule_description}.\n\n" \
                             "Please message the moderators if you feel this was an error. " \
                             "Responses to this comment are not monitored."
-        self.reddit_handler.reply_to_post(post, reminder_response, pin=False, lock=True)
+        self.reddit_handler.reply_to_content(post.submission, reminder_response, pin=False, lock=True)
 
     def handle_posts(self, subreddit_tracker):
         settings = subreddit_tracker.settings
@@ -342,7 +347,7 @@ class Janitor:
             if settings.report_stale_unmoderated_posts:
                 rounded_time = str(round(settings.stale_post_check_threshold_mins / 60, 2))
                 reason = f"This post is over {rounded_time} hours old and has not been moderated. Please take a look!"
-                self.reddit_handler.report_post(post, reason)
+                self.reddit_handler.report_content(post.submission, reason)
             else:
                 print(f"Not reporting stale unmoderated post: {post.submission.title}\n\t{post.submission.permalink}")
         subreddit_tracker.time_unmoderated_last_checked = now
@@ -378,11 +383,11 @@ class Janitor:
                 continue
             if comment.author == self.bot_username:
                 removal_reason = "Cleaned up non-submission statement comment"
-                self.reddit_handler.remove_content(removal_reason, comment)
+                self.reddit_handler.remove_content(comment, removal_reason, removal_reason, reply=False)
 
     def remove_on_topic(self, monitored_ss_replies, bot_comment, reason):
         if bot_comment in monitored_ss_replies:
-            self.reddit_handler.remove_content(reason, bot_comment)
+            self.reddit_handler.remove_content(bot_comment, reason, reason, reply=False)
             monitored_ss_replies.remove(bot_comment.id)
 
 
