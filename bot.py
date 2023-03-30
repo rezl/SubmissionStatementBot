@@ -207,8 +207,10 @@ class Janitor:
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
             print("\tPost has too short submission statement")
             if settings.submission_statement_pin:
+                submission_statement_content = settings.submission_statement_pin_text(
+                    post.submission, submission_statement)
                 self.reddit_handler.reply_to_content(post.submission,
-                                                     settings.submission_statement_pin_text(submission_statement),
+                                                     submission_statement_content,
                                                      pin=True, lock=True)
             if post.is_moderator_approved():
                 self.reddit_handler.report_content(post.submission,
@@ -222,8 +224,10 @@ class Janitor:
         elif submission_statement_state == SubmissionStatementState.VALID:
             print("\tPost has valid submission statement")
             if settings.submission_statement_pin:
+                submission_statement_content = settings.submission_statement_pin_text(
+                    post.submission, submission_statement)
                 self.reddit_handler.reply_to_content(post.submission,
-                                                     settings.submission_statement_pin_text(submission_statement),
+                                                     submission_statement_content,
                                                      pin=True, lock=True)
         else:
             raise RuntimeError(f"\tUnsupported submission_statement_state: {submission_statement_state}")
