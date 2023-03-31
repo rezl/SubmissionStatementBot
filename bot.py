@@ -226,9 +226,10 @@ class Janitor:
             if settings.submission_statement_pin:
                 submission_statement_content = settings.submission_statement_pin_text(
                     post.submission, submission_statement)
+                lock = False if post.submission.link_flair_text == "Overpopulation" else True
                 self.reddit_handler.reply_to_content(post.submission,
                                                      submission_statement_content,
-                                                     pin=True, lock=True)
+                                                     pin=True, lock=lock)
         else:
             raise RuntimeError(f"\tUnsupported submission_statement_state: {submission_statement_state}")
 
