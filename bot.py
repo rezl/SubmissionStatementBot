@@ -39,15 +39,15 @@ class Post:
             return True
         return False
 
-    def contains_comment(self, text, include_deleted=False):
+    def find_comment_containing(self, text, include_deleted=False):
         for comment in self.submission.comments:
             if not include_deleted:
                 if isinstance(comment.author, type(None)) or comment.removed:
                     continue
 
             if text in comment.body:
-                return True
-        return False
+                return comment
+        return None
 
     def is_post_old(self, time_mins):
         return self.created_time + timedelta(minutes=time_mins) < datetime.utcnow()
@@ -153,8 +153,25 @@ class Janitor:
             print("\tSelf post does not need a SS")
             return
 
-        if post.contains_comment(settings.submission_statement_bot_prefix):
+        bot_ss_comment = post.find_comment_containing(settings.submission_statement_bot_prefix)
+        if bot_ss_comment:
             print("\tBot has already posted SS")
+            if settings.submission_statement_edit_support:
+                try:
+                    bot_ss_comment_split = bot_ss_comment.body.split("/")
+                    actual_ss_id = bot_ss_comment_split[len(bot_ss_comment_split) - 2]
+                    actual_ss = self.reddit.comment(id=actual_ss_id)
+                    # original ss is edited if not in bot comment --> should edit
+                    if actual_ss.body not in bot_ss_comment.body:
+                        print("\tActual ss has been edited. Editing bot ss")
+                        submission_statement_content = settings.submission_statement_pin_text(
+                            post.submission, actual_ss)
+                        self.reddit_handler.edit_content(bot_ss_comment, submission_statement_content)
+                except Exception as e:
+                    message = f"Exception in identifying ss edits, won't edit." \
+                              f" {post.submission.title}: {e}\n```{traceback.format_exc()}```"
+                    self.discord_client.send_error_msg(message)
+                    print(message)
             return
 
         # use link post's text if valid
@@ -167,7 +184,7 @@ class Janitor:
                        "(which I would post shortly, if it meets submission statement requirements).\n" \
                        "Please message the moderators if you feel this was an error. " \
                        "Responses to this comment are not monitored."
-                if not post.contains_comment(text, include_deleted=True):
+                if not post.find_comment_containing(text, include_deleted=True):
                     self.reddit_handler.reply_to_content(post.submission, text, pin=False, lock=True)
             else:
                 print("\tPost has valid post-based submission statement, not doing anything")
@@ -305,7 +322,7 @@ class Janitor:
         if submission_statement_state == SubmissionStatementState.VALID:
             return
         reminder_identifier = "As a final reminder, your post must include a valid submission statement"
-        if post.contains_comment(reminder_identifier):
+        if post.find_comment_containing(reminder_identifier):
             return
 
         # one final reminder to post a ss
