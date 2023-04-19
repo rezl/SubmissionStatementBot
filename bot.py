@@ -66,8 +66,7 @@ class Post:
         for candidate in ss_candidates:
             text = candidate.body.lower()
             if ("submission statement" in text) or (" ss " in text):
-                submission_statement = candidate
-                break
+                return candidate
             if len(candidate.body) > len(submission_statement.body):
                 submission_statement = candidate
         return submission_statement
