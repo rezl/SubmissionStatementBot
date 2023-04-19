@@ -38,6 +38,10 @@ class RedditActionsHandler:
             self.reddit_call(lambda: reply_comment.mod.ignore_reports(), reddit_throttle_secs=1)
         return reply_comment
 
+    def edit_content(self, content, body):
+        print(f"\tEditing content {content}, body: {body}")
+        self.reddit_call(lambda: content.edit(body))
+
     def reddit_call(self, callback, reddit_throttle_secs=5):
         if Settings.is_dry_run:
             print("\tDRY RUN!!!")
