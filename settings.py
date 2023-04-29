@@ -65,8 +65,10 @@ class Settings:
         # Add more entries for other flair types
     }
 
-    def submission_statement_pin_text(self, submission, ss):
-        prefix = self.submission_statement_flair_prefixes.get(submission.link_flair_text, "")
+    def flair_pin_text(self, flair):
+        return self.submission_statement_flair_prefixes.get(flair, "")
+
+    def submission_statement_pin_text(self, ss, prefix):
         header = f"{self.submission_statement_bot_prefix} /u/{ss.author}:\n\n---\n\n"
         footer = f"\n\n---\n\n Please reply to OP's comment here: https://old.reddit.com{ss.permalink}"
         return prefix + "\n\n\n" + header + ss.body + footer

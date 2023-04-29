@@ -146,11 +146,15 @@ class Janitor:
             self.reddit_handler.remove_content(post.submission, settings.casual_hour_removal_reason,
                                                "low effort flair")
 
-    def handle_submission_statement(self, subreddit_tracker, post):
+    def handle_submission_statement(self, subreddit_tracker, post, ss_prefix):
         settings = subreddit_tracker.settings
         # self posts don't need a submission statement
         if post.submission.is_self:
             print("\tSelf post does not need a SS")
+            if ss_prefix and not post.find_comment_containing(ss_prefix):
+                print("\tSelf post needs prefix comment, adding")
+                lock = False if post.submission.link_flair_text == "Overpopulation" else True
+                self.reddit_handler.reply_to_content(post.submission, ss_prefix, pin=True, lock=lock)
             return
 
         bot_ss_comment = post.find_comment_containing(settings.submission_statement_bot_prefix)
@@ -164,8 +168,7 @@ class Janitor:
                     # original ss is edited if not in bot comment --> should edit
                     if actual_ss.body not in bot_ss_comment.body:
                         print("\tActual ss has been edited. Editing bot ss")
-                        submission_statement_content = settings.submission_statement_pin_text(
-                            post.submission, actual_ss)
+                        submission_statement_content = settings.submission_statement_pin_text(actual_ss, ss_prefix)
                         self.reddit_handler.edit_content(bot_ss_comment, submission_statement_content)
                 except Exception as e:
                     message = f"Exception in identifying ss edits, won't edit." \
@@ -223,8 +226,7 @@ class Janitor:
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
             print("\tPost has too short submission statement")
             if settings.submission_statement_pin:
-                submission_statement_content = settings.submission_statement_pin_text(
-                    post.submission, submission_statement)
+                submission_statement_content = settings.submission_statement_pin_text(submission_statement, ss_prefix)
                 self.reddit_handler.reply_to_content(post.submission,
                                                      submission_statement_content,
                                                      pin=True, lock=True)
@@ -240,11 +242,9 @@ class Janitor:
         elif submission_statement_state == SubmissionStatementState.VALID:
             print("\tPost has valid submission statement")
             if settings.submission_statement_pin:
-                submission_statement_content = settings.submission_statement_pin_text(
-                    post.submission, submission_statement)
+                submission_statement_content = settings.submission_statement_pin_text(submission_statement, ss_prefix)
                 lock = False if post.submission.link_flair_text == "Overpopulation" else True
-                self.reddit_handler.reply_to_content(post.submission,
-                                                     submission_statement_content,
+                self.reddit_handler.reply_to_content(post.submission, submission_statement_content,
                                                      pin=True, lock=lock)
         else:
             raise RuntimeError(f"\tUnsupported submission_statement_state: {submission_statement_state}")
@@ -347,7 +347,8 @@ class Janitor:
 
             try:
                 self.handle_low_effort(settings, post)
-                self.handle_submission_statement(subreddit_tracker, post)
+                prefix = settings.flair_pin_text(post.submission.link_flair_text)
+                self.handle_submission_statement(subreddit_tracker, post, prefix)
             except Exception as e:
                 message = f"Exception when handling post {post.submission.title}: {e}\n```{traceback.format_exc()}```"
                 self.discord_client.send_error_msg(message)
