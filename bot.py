@@ -166,7 +166,7 @@ class Janitor:
                     actual_ss_id = bot_ss_comment_split[len(bot_ss_comment_split) - 2]
                     actual_ss = self.reddit.comment(id=actual_ss_id)
                     # original ss is edited if not in bot comment --> should edit
-                    if actual_ss.body not in bot_ss_comment.body:
+                    if actual_ss.body not in bot_ss_comment.body and bot_ss_comment.author.name == "StatementBot":
                         print("\tActual ss has been edited. Editing bot ss")
                         submission_statement_content = settings.submission_statement_pin_text(actual_ss, ss_prefix)
                         self.reddit_handler.edit_content(bot_ss_comment, submission_statement_content)
