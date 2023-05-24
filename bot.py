@@ -177,6 +177,7 @@ class Janitor:
                     print(message)
             return
 
+        ss_optional = False
         # use link post's text if valid
         if post.submission.selftext != '':
             if len(post.submission.selftext) < settings.submission_statement_minimum_char_length:
@@ -190,8 +191,8 @@ class Janitor:
                 if not post.find_comment_containing(text, include_deleted=True):
                     self.reddit_handler.reply_to_content(post.submission, text, pin=False, lock=True)
             else:
-                print("\tPost has valid post-based submission statement, not doing anything")
-                return
+                print("\tPost has valid post-based submission statement, a comment based ss is optional")
+                ss_optional = True
 
         submission_statement = post.find_submission_statement()
         submission_statement_state = Janitor.validate_submission_statement(settings, submission_statement)
@@ -199,10 +200,11 @@ class Janitor:
         timeout_mins = settings.submission_statement_time_limit_mins
         reminder_mins = timeout_mins / 2
 
-        self.ss_on_topic_check(subreddit_tracker.monitored_ss_replies, settings, post,
-                               submission_statement, submission_statement_state, timeout_mins)
-        self.ss_final_reminder(settings, post, submission_statement, submission_statement_state,
-                               reminder_mins, timeout_mins)
+        if not ss_optional:
+            self.ss_on_topic_check(subreddit_tracker.monitored_ss_replies, settings, post,
+                                   submission_statement, submission_statement_state, timeout_mins)
+            self.ss_final_reminder(settings, post, submission_statement, submission_statement_state,
+                                   reminder_mins, timeout_mins)
 
         # users are given time to post a submission statement
         if not post.is_post_old(timeout_mins):
@@ -214,31 +216,38 @@ class Janitor:
 
         if submission_statement_state == SubmissionStatementState.MISSING:
             print("\tPost does NOT have submission statement")
-            if post.is_moderator_approved():
-                self.reddit_handler.report_content(post.submission,
-                                                   "Moderator approved post, but there is no SS. Please look.")
-            elif settings.report_submission_statement_timeout:
-                self.reddit_handler.report_content(post.submission,
-                                                   "Post has no submission statement after timeout. Please look.")
-            else:
-                self.reddit_handler.remove_content(post.submission, settings.ss_removal_reason,
-                                                   "No submission statement")
+            if not ss_optional:
+                if post.is_moderator_approved():
+                    self.reddit_handler.report_content(post.submission,
+                                                       "Moderator approved post, but there is no SS. Please look.")
+                elif settings.report_submission_statement_timeout:
+                    self.reddit_handler.report_content(post.submission,
+                                                       "Post has no submission statement after timeout. Please look.")
+                else:
+                    self.reddit_handler.remove_content(post.submission, settings.ss_removal_reason,
+                                                       "No submission statement")
         elif submission_statement_state == SubmissionStatementState.TOO_SHORT:
             print("\tPost has too short submission statement")
-            if settings.submission_statement_pin:
-                submission_statement_content = settings.submission_statement_pin_text(submission_statement, ss_prefix)
-                self.reddit_handler.reply_to_content(post.submission,
-                                                     submission_statement_content,
-                                                     pin=True, lock=True)
-            if post.is_moderator_approved():
-                self.reddit_handler.report_content(post.submission,
-                                                   "Moderator approved post, but SS is too short. Please double check.")
-            elif settings.report_submission_statement_insufficient_length:
-                self.reddit_handler.report_content(post.submission,
-                                                   "Submission statement is too short")
+            if ss_optional:
+                if settings.submission_statement_pin:
+                    submission_statement_content = settings.submission_statement_pin_text(submission_statement, ss_prefix)
+                    lock = False if post.submission.link_flair_text == "Overpopulation" else True
+                    self.reddit_handler.reply_to_content(post.submission, submission_statement_content,
+                                                         pin=True, lock=lock)
             else:
-                self.reddit_handler.remove_content(post.submission, settings.ss_removal_reason,
-                                                   "Submission statement is too short")
+                if settings.submission_statement_pin:
+                    submission_statement_content = settings.submission_statement_pin_text(submission_statement, ss_prefix)
+                    self.reddit_handler.reply_to_content(post.submission,
+                                                         submission_statement_content,
+                                                         pin=True, lock=True)
+                if post.is_moderator_approved():
+                    reason = "Moderator approved post, but SS is too short. Please double check."
+                    self.reddit_handler.report_content(post.submission, reason)
+                elif settings.report_submission_statement_insufficient_length:
+                    self.reddit_handler.report_content(post.submission, "Submission statement is too short")
+                else:
+                    reason = "Submission statement is too short"
+                    self.reddit_handler.remove_content(post.submission, settings.ss_removal_reason, reason)
         elif submission_statement_state == SubmissionStatementState.VALID:
             print("\tPost has valid submission statement")
             if settings.submission_statement_pin:
