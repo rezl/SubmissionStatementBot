@@ -433,7 +433,7 @@ def run_forever():
     discord_error_channel_name = os.environ.get("DISCORD_ERROR_CHANNEL", config.DISCORD_ERROR_CHANNEL)
     subreddits_config = os.environ.get("SUBREDDITS", config.SUBREDDITS)
     subreddit_names = [subreddit.strip() for subreddit in subreddits_config.split(",")]
-    print("CONFIG: subreddit_names=" + str(subreddit_names))
+    print("CONFIG: subreddit_names=" + str(subreddit_names) + ", client_id=" + client_id)
 
     discord_client = DiscordClient(discord_error_guild_name, discord_error_channel_name)
     discord_client.add_commands()
