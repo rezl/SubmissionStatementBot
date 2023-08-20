@@ -304,18 +304,11 @@ class Janitor:
             return
 
         response_keyword = settings.submission_statement_on_topic_response
-        response = f"Hi, thanks for contributing and including this submission statement. However, " \
-                   f"your comment does not appear to explain how this content is related to {response_keyword}. " \
-                   f"Could you please edit this comment to include that, before 30 mins?" \
-                   f"\n\n" \
-                   f"If I am wrong and your ss does explain the {response_keyword} relation," \
-                   f" kindly ignore and/or downvote this comment." \
-                   f"If your submission statement does not explain how this content is related to collapse" \
-                   f", it may be removed. (Please remember that if your submission statement is mostly" \
-                   f" or entirely extracted from the linked article, it will be removed!)" \
-                   f"\n\n" \
-                   f"This is a bot. Replies will not receive responses. " \
-                   f"Please message the moderators if you feel this was an error."
+        response = f"Does this submission statement explain how your post is related to {response_keyword}?\n\n" \
+                   f"* If it does, downvote this comment\n\n" \
+                   f"* If it doesn't, please edit to include that\n\n" \
+                   f"Keeping content on-topic is important to our community, and submission statements help achieve " \
+                   f"that. Thanks for your submission!"
         comment = self.reddit_handler.reply_to_content(submission_statement, response,
                                                        pin=False, lock=True, ignore_reports=True)
         if comment is not None and settings.submission_statement_on_topic_check_downvotes:
@@ -422,7 +415,7 @@ class Janitor:
             monitored_ss_replies.remove(bot_comment.id)
 
 
-def run_forever():
+if __name__ == "__main__":
     # get config from env vars if set, otherwise from config file
     client_id = os.environ.get("CLIENT_ID", config.CLIENT_ID)
     client_secret = os.environ.get("CLIENT_SECRET", config.CLIENT_SECRET)
@@ -483,6 +476,3 @@ def run_forever():
             print(message)
             time.sleep(Settings.post_check_frequency_mins * 60)
 
-
-if __name__ == "__main__":
-    run_forever()
