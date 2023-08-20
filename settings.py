@@ -83,19 +83,30 @@ class CollapseSettings(Settings):
                                               "bioaccumulation",
                                               "biodiversity",
                                               "biomass",
+                                              "boundar",
+                                              "breakdown",
                                               "capacity",
-                                              "cascading failure",
+                                              "cascad",
+                                              "change",
                                               "clathrate",
+                                              "climate",
                                               "collaps",
                                               "complex",
                                               "consum",
                                               "crisis",
                                               "deplet",
                                               "depopulation",
+                                              "disintegration",
+                                              "displac",
+                                              "economic",
+                                              "ecosystem",
                                               "energy",
+                                              "environment",
                                               "eroei",
+                                              "exploit",
                                               "exponential",
                                               "extinct",
+                                              "failure",
                                               "feedback",
                                               "finite",
                                               "geoengineering",
@@ -104,24 +115,31 @@ class CollapseSettings(Settings):
                                               "heuristic",
                                               "humanity",
                                               "industrial",
+                                              "inequal",
                                               "irreversible",
                                               "long now",
                                               "ltg",
                                               "mass starvation",
+                                              "migrat",
                                               "nthe",
                                               "overpopulation",
                                               "oversho",
                                               "peak",
                                               "perverse incentive",
+                                              "planet",
                                               "resilien",
+                                              "resource",
                                               "runaway",
+                                              "scarcity",
+                                              "social",
+                                              "societ",
                                               "supply chain",
+                                              "sustain",
                                               "system",
                                               "tipping point",
                                               "uncontrolled",
                                               "unsurvivable",
                                               "wet bulb",
-                                              "wicked problem",
                                               ]
     submission_statement_on_topic_response = "collapse"
     submission_statement_on_topic_check_downvotes = True
@@ -140,7 +158,8 @@ class CollapseSettings(Settings):
                           "* Instructing other users to harm themselves. We have reached consensus that a permaban "
                           "for the first offense is an appropriate response to this, as mentioned in the sidebar."
                           "\n\n"
-                          "This is an abbreviated summary of the [original full post available in the wiki.]"
+                          "This is an abbreviated summary of the mod team's statement on overpopulation,"
+                          " [the is full post available in the wiki.]"
                           "(https://www.reddit.com/r/collapse/wiki/claims/#wiki_mod_team_comment_on_overpopulation_posts)"
         # Add more entries for other flair types
     }
