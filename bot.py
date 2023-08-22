@@ -270,7 +270,8 @@ class Janitor:
         if submission_statement_state == SubmissionStatementState.MISSING:
             return
 
-        on_topic_identifier = "does not explain how this content is related"
+        response_keyword = settings.submission_statement_on_topic_response
+        on_topic_identifier = f"Does this submission statement explain how your post is related to {response_keyword}?"
         bot_comment = None
         for reply in submission_statement.replies:
             if on_topic_identifier in reply.body:
@@ -303,8 +304,7 @@ class Janitor:
         if bot_comment or contains_on_topic_keyword:
             return
 
-        response_keyword = settings.submission_statement_on_topic_response
-        response = f"Does this submission statement explain how your post is related to {response_keyword}?\n\n" \
+        response = f"{on_topic_identifier}\n\n" \
                    f"* If it does, downvote this comment\n\n" \
                    f"* If it doesn't, please edit to include that\n\n" \
                    f"Keeping content on-topic is important to our community, and submission statements help achieve " \
