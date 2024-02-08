@@ -153,8 +153,7 @@ class Janitor:
             print("\tSelf post does not need a SS")
             if ss_prefix and not post.find_comment_containing(ss_prefix):
                 print("\tSelf post needs prefix comment, adding")
-                lock = False if post.submission.link_flair_text == "Overpopulation" else True
-                self.reddit_handler.reply_to_content(post.submission, ss_prefix, pin=True, lock=lock)
+                self.reddit_handler.reply_to_content(post.submission, ss_prefix, pin=True, lock=True)
             return
 
         bot_ss_comment = post.find_comment_containing(settings.submission_statement_bot_prefix)
@@ -231,9 +230,8 @@ class Janitor:
             if ss_optional:
                 if settings.submission_statement_pin:
                     submission_statement_content = settings.submission_statement_pin_text(submission_statement, ss_prefix)
-                    lock = False if post.submission.link_flair_text == "Overpopulation" else True
                     self.reddit_handler.reply_to_content(post.submission, submission_statement_content,
-                                                         pin=True, lock=lock)
+                                                         pin=True, lock=True)
             else:
                 if settings.submission_statement_pin:
                     submission_statement_content = settings.submission_statement_pin_text(submission_statement, ss_prefix)
@@ -252,9 +250,8 @@ class Janitor:
             print("\tPost has valid submission statement")
             if settings.submission_statement_pin:
                 submission_statement_content = settings.submission_statement_pin_text(submission_statement, ss_prefix)
-                lock = False if post.submission.link_flair_text == "Overpopulation" else True
                 self.reddit_handler.reply_to_content(post.submission, submission_statement_content,
-                                                     pin=True, lock=lock)
+                                                     pin=True, lock=True)
         else:
             raise RuntimeError(f"\tUnsupported submission_statement_state: {submission_statement_state}")
 
