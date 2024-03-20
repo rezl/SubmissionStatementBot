@@ -25,7 +25,7 @@ class RedditActionsHandler:
         self.reddit_call(lambda: content.report(reason))
 
     def reply_to_content(self, content, reason, pin=True, lock=False, ignore_reports=False):
-        print(f"\tReplying to content, reason: {reason}")
+        print(f"\tReplying to content {content}, reason: {reason}")
         max_chars = 10000
         if len(reason) > max_chars:
             print(f"Warning: Reason has been truncated to {max_chars} characters")
