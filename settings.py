@@ -28,6 +28,7 @@ class Settings:
     submission_statement_on_topic_response = ""
     submission_statement_on_topic_check_downvotes = False
     submission_statement_on_topic_removal_score = -50000
+    submission_statement_on_topic_report_score = 50000
     submission_statement_edit_support = False
 
     low_effort_flair = ["casual friday", "low effort", "humor", "humour"]
@@ -144,6 +145,7 @@ class CollapseSettings(Settings):
     submission_statement_on_topic_response = "collapse"
     submission_statement_on_topic_check_downvotes = True
     submission_statement_on_topic_removal_score = -3
+    submission_statement_on_topic_report_score = 3
     submission_statement_edit_support = True
     submission_statement_flair_prefixes = {
         "Overpopulation": "This thread addresses overpopulation, a fraught but important issue that attracts disruption"

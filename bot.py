@@ -283,7 +283,6 @@ class Janitor:
                 break
 
         # remove bot comment if post is approved or has been edited to contain a keyword
-        removal_score = settings.submission_statement_on_topic_removal_score
         if post.submission.approved:
             self.remove_on_topic(monitored_ss_replies, bot_comment,
                                  "Removed ss reply due to approved post")
@@ -292,10 +291,14 @@ class Janitor:
             self.remove_on_topic(monitored_ss_replies, bot_comment,
                                  "Removed ss reply due to edited ss contains keyword")
             return
-        elif bot_comment and bot_comment.score < removal_score:
+        elif bot_comment and bot_comment.score < settings.submission_statement_on_topic_removal_score:
             self.remove_on_topic(monitored_ss_replies, bot_comment,
                                  f"Removed ss reply due to low score: {str(bot_comment.score)}")
             return
+        elif bot_comment and bot_comment.score > settings.submission_statement_on_topic_report_score:
+            reason = f"Bot on-topic comment upvoted too much: " \
+                     f"Check post is related to collapse and ss is good"
+            self.reddit_handler.report_content(bot_comment, reason)
 
         # bot comment exists, or ss is already on topic
         if bot_comment or contains_on_topic_keyword:
