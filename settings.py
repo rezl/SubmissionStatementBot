@@ -161,7 +161,7 @@ class CollapseSettings(Settings):
                           "for the first offense is an appropriate response to this, as mentioned in the sidebar."
                           "\n\n"
                           "This is an abbreviated summary of the mod team's statement on overpopulation,"
-                          " [the is full post available in the wiki.]"
+                          " [view the full statement available in the wiki.]"
                           "(https://www.reddit.com/r/collapse/wiki/claims/#wiki_mod_team_comment_on_overpopulation_posts)"
         # Add more entries for other flair types
     }
