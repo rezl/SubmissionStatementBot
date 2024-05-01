@@ -222,7 +222,7 @@ class Janitor:
         elif bot_comment and bot_comment.score > settings.submission_statement_on_topic_report_score:
             reason = f"Bot on-topic comment upvoted too much: " \
                      f"Check post is related to collapse and ss is good"
-            self.reddit_handler.report_content(bot_comment, reason)
+            self.reddit_handler.report_content(post.submission, reason)
 
         # bot comment exists, or ss is already on topic
         if bot_comment or contains_on_topic_keyword:
