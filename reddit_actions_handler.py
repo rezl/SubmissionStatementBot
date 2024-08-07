@@ -15,6 +15,9 @@ class RedditActionsHandler:
         self.last_call_time = 0
 
     def remove_content(self, content, external_removal_reason, internal_removal_reason, reply=True):
+        if content is None or isinstance(content.author, type(None)) or content.removed:
+            print(f"\tWould remove, but deleted content - not removing {content}, reason: {internal_removal_reason}")
+            return
         print(f"\tRemoving content {content}, reason: {internal_removal_reason}")
         self.reddit_call(lambda: content.mod.remove(mod_note=internal_removal_reason))
         if reply:
