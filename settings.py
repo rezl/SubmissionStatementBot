@@ -11,7 +11,7 @@ class Settings:
     report_stale_unmoderated_posts = False
     report_submission_statement_timeout = False
 
-    post_check_threshold_mins = 2 * 60
+    post_check_threshold_mins = 200 * 60
     consecutive_old_posts = 5
     stale_post_check_frequency_mins = 60
     stale_post_check_threshold_mins = 12 * 60
@@ -30,6 +30,8 @@ class Settings:
     submission_statement_on_topic_removal_score = -50000
     submission_statement_on_topic_report_score = 50000
     submission_statement_edit_support = False
+
+    submission_statement_crosspost_prefix = ""
 
     low_effort_flair = ["casual friday", "low effort", "humor", "humour"]
     ss_removal_reason = ("Your post has been removed for not including a submission statement, "
@@ -77,6 +79,11 @@ class Settings:
 
 class CollapseSettings(Settings):
     report_stale_unmoderated_posts = True
+
+    submission_statement_crosspost_prefix = ("This post links to another subreddit. "
+                                             "Users who are not already subscribed to that subreddit should not "
+                                             "participate with comments and up/downvotes, or otherwise harass or "
+                                             "interfere with their discussions (brigading)")
 
     submission_statement_final_reminder = True
     submission_statement_on_topic_reminder = True
