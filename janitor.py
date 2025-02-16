@@ -277,7 +277,7 @@ class Janitor:
                 is_crosspost = (not post.submission.is_self and ("reddit.com" in post.submission.url)) or \
                                (hasattr(post.submission, 'crosspost_parent') and post.submission.crosspost_parent)
                 crosspost_prefix = settings.submission_statement_crosspost_prefix if is_crosspost else ""
-                prefix = f"{crosspost_prefix}\n---\n{flair_prefix}" if flair_prefix and crosspost_prefix \
+                prefix = f"{crosspost_prefix}\n\n---\n\n{flair_prefix}" if flair_prefix and crosspost_prefix \
                     else crosspost_prefix + flair_prefix
                 self.handle_submission_statement(subreddit_tracker, post, prefix)
             except Exception as e:
