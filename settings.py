@@ -11,10 +11,10 @@ class Settings:
     report_stale_unmoderated_posts = True
     report_submission_statement_timeout = False
 
-    post_check_threshold_mins = 1 * 60
+    post_check_threshold_mins = 200 * 60
     consecutive_old_posts = 5
     stale_post_check_frequency_mins = 60
-    stale_post_check_threshold_mins = 12 * 60
+    stale_post_check_threshold_mins = 1 * 60
 
     submission_statement_pin = True
     submission_statement_time_limit_mins = 30
