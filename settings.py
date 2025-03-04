@@ -8,10 +8,10 @@ class Settings:
     post_check_frequency_mins = 5
 
     report_submission_statement_insufficient_length = False
-    report_stale_unmoderated_posts = False
+    report_stale_unmoderated_posts = True
     report_submission_statement_timeout = False
 
-    post_check_threshold_mins = 200 * 60
+    post_check_threshold_mins = 1 * 60
     consecutive_old_posts = 5
     stale_post_check_frequency_mins = 60
     stale_post_check_threshold_mins = 12 * 60
