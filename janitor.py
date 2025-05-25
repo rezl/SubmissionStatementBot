@@ -105,7 +105,7 @@ class Janitor:
                 print("\tPost has short post-based submission statement")
                 text = "Hi, thanks for your contribution. It looks like you've included your submission statement " \
                        "directly in your post, which is fine, but it is too short (min 150 chars). \n\n" \
-                       "You cannot edit post text, so please add a comment-based ss instead g" \
+                       "You cannot edit post text, so please add a comment-based ss instead " \
                        "(which I would post shortly, if it meets submission statement requirements).\n" \
                        "Please message the moderators if you feel this was an error. " \
                        "Responses to this comment are not monitored."
