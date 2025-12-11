@@ -70,6 +70,7 @@ class Janitor:
 
     def handle_submission_statement(self, subreddit_tracker, post, ss_prefix):
         settings = subreddit_tracker.settings
+        
         # self posts don't need a submission statement
         if post.submission.is_self:
             print("\tSelf post does not need a SS")
@@ -103,13 +104,21 @@ class Janitor:
         if post.submission.selftext != '':
             if len(post.submission.selftext) < settings.submission_statement_minimum_char_length:
                 print("\tPost has short post-based submission statement")
-                text = "Hi, thanks for your contribution. Your post requires a submission statement (a comment on your own post) of at least 150 characters. It looks like you included text in the post body, but this is too short.\n\n" \
-                       "Since post text can't be edited, please add a comment instead. Your submission statement should summarize the content and explain why it's relevant to the UFO topic.\n\n" \
-                       "If a submission statement is not added, your post will be automatically removed.\n\n" \
-                       "For full rules, see: https://www.reddit.com/r/UFOs/wiki/rules/\n\n" \
-                       "*This is an automated message. Responses to this comment are not monitored. Please [message the moderators](https://www.reddit.com/message/compose?to=/r/UFOs) if you believe this was an error.*"
-                if not post.find_comment_containing(text, include_deleted=True):
-                    self.reddit_handler.reply_to_content(post.submission, text, pin=False, lock=True)
+                # Skip warning if post is already mod approved
+                if not post.submission.approved:
+                    # Check if bot already posted a warning (even if removed by mod)
+                    too_short_marker = "Your post requires a submission statement"
+                    old_marker = "you've included your submission statement"  # old message format
+                    if post.find_comment_containing(too_short_marker, include_deleted=True) or \
+                       post.find_comment_containing(old_marker, include_deleted=True):
+                        print("\tToo short warning already posted, skipping")
+                    else:
+                        text = "Hi, thanks for your contribution. Your post requires a submission statement (a comment on your own post) of at least 150 characters. It looks like you included text in the post body, but this is too short.\n\n" \
+                               "Since post text can't be edited, please add a comment instead. Your submission statement should summarize the content and explain why it's relevant to the UFO topic.\n\n" \
+                               "If a submission statement is not added, your post will be automatically removed.\n\n" \
+                               "For full rules, see: https://www.reddit.com/r/UFOs/wiki/rules/\n\n" \
+                               "*This is an automated message. Responses to this comment are not monitored. Please [message the moderators](https://www.reddit.com/message/compose?to=/r/UFOs) if you believe this was an error.*"
+                        self.reddit_handler.reply_to_content(post.submission, text, pin=False, lock=True)
             else:
                 print("\tPost has valid post-based submission statement, a comment based ss is optional")
                 ss_optional = True
@@ -240,6 +249,9 @@ class Janitor:
     def ss_final_reminder(self, settings, post, submission_statement, submission_statement_state,
                           reminder_timeout_mins, timeout_mins):
         if not settings.submission_statement_final_reminder:
+            return
+        # Skip if post is mod approved
+        if post.submission.approved:
             return
         # only applies to posts that are between the time to remind and time to post
         if not post.is_post_old(reminder_timeout_mins) or post.is_post_old(timeout_mins):
