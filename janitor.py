@@ -271,6 +271,12 @@ class Janitor:
         for post in posts:
             print(f"Checking post: {post.submission.title}\n\t{post.submission.permalink}")
 
+            # Skip posts with excluded flairs
+            flair = post.submission.link_flair_text
+            if flair and flair.lower() in [f.lower() for f in settings.excluded_flairs]:
+                print(f"\tSkipping post with excluded flair: {flair}")
+                continue
+
             try:
                 self.handle_low_effort(settings, post)
                 flair_prefix = settings.flair_pin_text(post.submission.link_flair_text)
