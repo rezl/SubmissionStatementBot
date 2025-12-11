@@ -34,6 +34,10 @@ class Settings:
     submission_statement_crosspost_prefix = ""
 
     low_effort_flair = ["casual friday", "low effort", "humor", "humour"]
+    
+    # Flairs to skip entirely (no submission statement required)
+    excluded_flairs = []
+    
     ss_removal_reason = ("Your post has been removed for not including a submission statement, "
                          "meaning post text or a comment on your own post that provides context for the link. "
                          "If you still wish to share your post you must resubmit your link "
@@ -181,10 +185,15 @@ class CollapseSettings(Settings):
     }
 
 
+class UFOsSettings(Settings):
+    # Skip Sighting posts - handled by LocationStatementBot instead
+    excluded_flairs = ["sighting"]
+
+
 class SettingsFactory:
     settings_classes = {
         'collapse': CollapseSettings,
-        'ufos': Settings,
+        'ufos': UFOsSettings,
     }
 
     @staticmethod
@@ -192,6 +201,9 @@ class SettingsFactory:
         # ensure only contains valid characters
         if not re.match(r'^\w+$', subreddit_name):
             raise ValueError("subreddit_name contains invalid characters")
+
+        settings_class = SettingsFactory.settings_classes.get(subreddit_name.lower(), Settings)
+        return settings_class()
 
         settings_class = SettingsFactory.settings_classes.get(subreddit_name.lower(), Settings)
         return settings_class()
