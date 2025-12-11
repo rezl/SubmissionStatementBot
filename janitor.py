@@ -103,12 +103,11 @@ class Janitor:
         if post.submission.selftext != '':
             if len(post.submission.selftext) < settings.submission_statement_minimum_char_length:
                 print("\tPost has short post-based submission statement")
-                text = "Hi, thanks for your contribution. It looks like you've included your submission statement " \
-                       "directly in your post, which is fine, but it is too short (min 150 chars). \n\n" \
-                       "You cannot edit post text, so please add a comment-based ss instead " \
-                       "(which I would post shortly, if it meets submission statement requirements).\n" \
-                       "Please message the moderators if you feel this was an error. " \
-                       "Responses to this comment are not monitored."
+                text = "Hi, thanks for your contribution. Your post requires a submission statement (a comment on your own post) of at least 150 characters. It looks like you included text in the post body, but this is too short.\n\n" \
+                       "Since post text can't be edited, please add a comment instead. Your submission statement should summarize the content and explain why it's relevant to the UFO topic.\n\n" \
+                       "If a submission statement is not added, your post will be automatically removed.\n\n" \
+                       "For full rules, see: https://www.reddit.com/r/UFOs/wiki/rules/\n\n" \
+                       "*This is an automated message. Responses to this comment are not monitored. Please [message the moderators](https://www.reddit.com/message/compose?to=/r/UFOs) if you believe this was an error.*"
                 if not post.find_comment_containing(text, include_deleted=True):
                     self.reddit_handler.reply_to_content(post.submission, text, pin=False, lock=True)
             else:
