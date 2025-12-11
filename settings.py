@@ -204,6 +204,3 @@ class SettingsFactory:
 
         settings_class = SettingsFactory.settings_classes.get(subreddit_name.lower(), Settings)
         return settings_class()
-
-        settings_class = SettingsFactory.settings_classes.get(subreddit_name.lower(), Settings)
-        return settings_class()
