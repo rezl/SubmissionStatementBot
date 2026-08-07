@@ -287,6 +287,14 @@ class Janitor:
                 print(f"\tSkipping post with excluded flair: {flair}")
                 continue
 
+            # Skip posts by excluded authors (e.g. our own sighting bot, which manages its own
+            # pinned comment). Author-based so re-flairing the post never re-exposes it.
+            author = post.submission.author
+            author_name = author.name if author else None
+            if author_name and author_name.lower() in [a.lower() for a in settings.excluded_authors]:
+                print(f"\tSkipping post by excluded author: {author_name}")
+                continue
+
             try:
                 self.handle_low_effort(settings, post)
                 flair_prefix = settings.flair_pin_text(post.submission.link_flair_text)

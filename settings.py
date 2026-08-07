@@ -37,7 +37,11 @@ class Settings:
     
     # Flairs to skip entirely (no submission statement required)
     excluded_flairs = []
-    
+
+    # Authors to skip entirely, regardless of flair (e.g. mod/sighting bots that manage their
+    # own pinned comment). Author-based so re-flairing the post never re-exposes it.
+    excluded_authors = []
+
     ss_removal_reason = ("Your post has been removed for not including a submission statement, "
                          "meaning post text or a comment on your own post that provides context for the link. "
                          "If you still wish to share your post you must resubmit your link "
@@ -188,6 +192,9 @@ class CollapseSettings(Settings):
 class UFOsSettings(Settings):
     # Skip Sighting posts - handled by LocationStatementBot instead
     excluded_flairs = ["sighting"]
+    # Skip posts by our own sighting bot regardless of flair. It posts its own pinned comment;
+    # without this, re-flairing a Sighting to e.g. Identified would let this bot overwrite it.
+    excluded_authors = ["ufosightingsbot"]
 
 
 class SettingsFactory:
